@@ -1,0 +1,512 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { AssignmentModal } from '@/components/assignment-modal';
+
+type RevistaItem = {
+  id?: number;
+  revista_type?: string;
+  character_type?: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  legal_norm?: string | null;
+  resolution_number?: string | null;
+  notes?: string | null;
+  pof_position?: {
+    plaza_number?: string | null;
+    subject_name?: string | null;
+    hours_count?: number | null;
+    course?: string | null;
+    division?: string | null;
+    shift?: string | null;
+  } | null;
+};
+
+type AttendanceItem = {
+  id?: number;
+  start_date?: string | null;
+  end_date?: string | null;
+  quantity_days?: number | null;
+  description?: string | null;
+  document_number?: string | null;
+};
+
+type AgentProfile = {
+  id: number;
+  last_name?: string | null;
+  first_name?: string | null;
+  full_name: string;
+  dni: string;
+  birth_date?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  mobile?: string | null;
+  email?: string | null;
+  teaching_file_number?: string | null;
+  board_file_number?: string | null;
+  secondary_board_number?: string | null;
+  school_entry_date?: string | null;
+  teaching_entry_date?: string | null;
+  titles?: string | null;
+  identity_card_number?: string | null;
+  notes?: string | null;
+  revista_actual?: RevistaItem[];
+  revista_historica?: RevistaItem[];
+  licencias?: AttendanceItem[];
+  ausentes?: AttendanceItem[];
+  capacitaciones?: AttendanceItem[];
+};
+
+type Props = {
+  agent: AgentProfile;
+  onOpenLicencias: () => void;
+  onOpenAusentes: () => void;
+  onOpenCapacitaciones: () => void;
+  onRefreshProfile: () => Promise<void> | void;
+};
+
+type RevistaView = 'actual' | 'historica';
+
+function formatDate(date?: string | null) {
+  if (!date) return '-';
+
+  const safe = new Date(date);
+  if (Number.isNaN(safe.getTime())) return date;
+
+  return safe.toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+function formatDateCompact(date?: string | null) {
+  if (!date) return '-';
+
+  const safe = new Date(date);
+  if (Number.isNaN(safe.getTime())) return date;
+
+  return safe.toLocaleDateString('es-AR');
+}
+
+function fieldValue(value?: string | number | null) {
+  if (value === null || value === undefined || value === '') return '-';
+  return String(value);
+}
+
+function shiftLabel(value?: string | null) {
+  if (!value) return '-';
+
+  const normalized = value.toUpperCase();
+
+  if (normalized === 'MANANA' || normalized === 'MAÑANA' || normalized === 'M') {
+    return 'M';
+  }
+
+  if (normalized === 'TARDE' || normalized === 'T') {
+    return 'T';
+  }
+
+  if (normalized === 'NOCHE' || normalized === 'N' || normalized === 'NOCTURNO') {
+    return 'N';
+  }
+
+  return value;
+}
+
+function InfoBox({
+  label,
+  value,
+  full = false,
+}: {
+  label: string;
+  value: string;
+  full?: boolean;
+}) {
+  return (
+    <div className={full ? 'md:col-span-2 xl:col-span-3' : ''}>
+      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 print:text-[10px]">
+        {label}
+      </p>
+      <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 print:rounded-none print:border-slate-400 print:px-2 print:py-1 print:text-[11px]">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function RevistaTable({
+  items,
+  emptyText,
+}: {
+  items: RevistaItem[];
+  emptyText: string;
+}) {
+  if (!items.length) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 print:rounded-none print:border-slate-400 print:bg-white print:px-2 print:py-2 print:text-[11px]">
+        {emptyText}
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full border-collapse text-sm print:text-[10px]">
+        <thead>
+          <tr className="bg-slate-100 text-slate-700 print:bg-white">
+            <th className="border border-slate-300 px-2 py-2 text-left font-bold print:px-1 print:py-1">
+              PLAZA
+            </th>
+            <th className="border border-slate-300 px-2 py-2 text-left font-bold print:px-1 print:py-1">
+              ASIGNATURA / CARGO
+            </th>
+            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1">
+              HS.
+            </th>
+            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1">
+              CURSO
+            </th>
+            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1">
+              DIV
+            </th>
+            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1">
+              TURNO
+            </th>
+            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1">
+              DESDE
+            </th>
+            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1">
+              HASTA
+            </th>
+            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1">
+              CARÁCTER
+            </th>
+            <th className="border border-slate-300 px-2 py-2 text-left font-bold print:px-1 print:py-1">
+              NORMA LEGAL
+            </th>
+            <th className="border border-slate-300 px-2 py-2 text-left font-bold print:px-1 print:py-1">
+              OBSERVACIONES
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {items.map((item, index) => (
+            <tr
+              key={item.id ?? `${item.pof_position?.plaza_number}-${index}`}
+              className="bg-white"
+            >
+              <td className="border border-slate-300 px-2 py-2 align-top print:px-1 print:py-1">
+                {fieldValue(item.pof_position?.plaza_number)}
+              </td>
+              <td className="border border-slate-300 px-2 py-2 align-top print:px-1 print:py-1">
+                {fieldValue(item.pof_position?.subject_name)}
+              </td>
+              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1">
+                {fieldValue(item.pof_position?.hours_count)}
+              </td>
+              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1">
+                {fieldValue(item.pof_position?.course)}
+              </td>
+              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1">
+                {fieldValue(item.pof_position?.division)}
+              </td>
+              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1">
+                {shiftLabel(item.pof_position?.shift)}
+              </td>
+              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1">
+                {formatDateCompact(item.start_date)}
+              </td>
+              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1">
+                {item.end_date ? formatDateCompact(item.end_date) : 'CONTINUA'}
+              </td>
+              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1">
+                {fieldValue(item.character_type)}
+              </td>
+              <td className="border border-slate-300 px-2 py-2 align-top print:px-1 print:py-1">
+                {fieldValue(item.legal_norm || item.resolution_number)}
+              </td>
+              <td className="border border-slate-300 px-2 py-2 align-top print:px-1 print:py-1">
+                {fieldValue(item.notes)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export function DocenteDatosPanel({
+  agent,
+  onOpenLicencias,
+  onOpenAusentes,
+  onOpenCapacitaciones,
+  onRefreshProfile,
+}: Props) {
+  const [revistaView, setRevistaView] = useState<RevistaView>('actual');
+  const [isDesignacionOpen, setIsDesignacionOpen] = useState(false);
+  const [isBajaOpen, setIsBajaOpen] = useState(false);
+
+const revistaActual = useMemo(
+  () => agent.revista_actual ?? [],
+  [agent.revista_actual],
+);
+
+const revistaHistorica = useMemo(
+  () => agent.revista_historica ?? [],
+  [agent.revista_historica],
+);
+
+const revistaItems = useMemo(
+  () => (revistaView === 'actual' ? revistaActual : revistaHistorica),
+  [revistaView, revistaActual, revistaHistorica],
+);
+
+  return (
+    <div className="space-y-6 print:space-y-4">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:rounded-none print:border-slate-400 print:p-4 print:shadow-none">
+        <div className="mb-5 print:mb-3">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 print:text-[10px]">
+            Datos personales
+          </p>
+          <h3 className="text-2xl font-bold text-slate-800 print:text-lg">
+            {agent.full_name}
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 print:gap-2">
+          <InfoBox label="Apellido" value={fieldValue(agent.last_name)} />
+          <InfoBox label="Nombre" value={fieldValue(agent.first_name)} />
+          <InfoBox label="DNI" value={fieldValue(agent.dni)} />
+          <InfoBox label="Legajo en junta" value={fieldValue(agent.board_file_number)} />
+          <InfoBox
+            label="Legajo nivel secundario"
+            value={fieldValue(agent.secondary_board_number)}
+          />
+          <InfoBox label="Fecha de nacimiento" value={formatDate(agent.birth_date)} />
+          <InfoBox label="Email" value={fieldValue(agent.email)} />
+          <InfoBox label="Teléfono fijo" value={fieldValue(agent.phone)} />
+          <InfoBox label="Celular" value={fieldValue(agent.mobile)} />
+          <InfoBox
+            label="Cédula de identidad"
+            value={fieldValue(agent.identity_card_number)}
+          />
+          <InfoBox
+            label="Inicio en docencia"
+            value={formatDate(agent.teaching_entry_date)}
+          />
+          <InfoBox
+            label="Inicio en escuela"
+            value={formatDate(agent.school_entry_date)}
+          />
+          <InfoBox label="Domicilio" value={fieldValue(agent.address)} full />
+          <InfoBox label="Título que posee" value={fieldValue(agent.titles)} full />
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden">
+        <div className="mb-4">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Movimientos
+          </p>
+          <h3 className="text-xl font-bold text-slate-800">
+            Designación / baja
+          </h3>
+          <p className="mt-1 text-sm text-slate-600">
+            Registrá movimientos institucionales para este docente.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => setIsDesignacionOpen(true)}
+            className="rounded-2xl bg-slate-800 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+          >
+            Nueva designación
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsBajaOpen(true)}
+            className="rounded-2xl border border-red-300 bg-white px-5 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+          >
+            Registrar baja
+          </button>
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden">
+        <div className="mb-4">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Situación de revista
+          </p>
+          <h3 className="text-xl font-bold text-slate-800">Vista seleccionada</h3>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => setRevistaView('actual')}
+            className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
+              revistaView === 'actual'
+                ? 'bg-slate-800 text-white'
+                : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            Revista actual
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setRevistaView('historica')}
+            className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
+              revistaView === 'historica'
+                ? 'bg-slate-800 text-white'
+                : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            Revista histórica
+          </button>
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden">
+        <div className="mb-4">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Situación laboral
+          </p>
+          <h3 className="text-xl font-bold text-slate-800">
+            {revistaView === 'actual' ? 'Revista actual' : 'Revista histórica'}
+          </h3>
+        </div>
+
+        <RevistaTable
+          items={revistaItems}
+          emptyText={
+            revistaView === 'actual'
+              ? 'No hay situación de revista actual registrada.'
+              : 'No hay situación de revista histórica registrada.'
+          }
+        />
+      </section>
+
+      <section className="hidden print:block print:break-before-page print:pt-4">
+        <div className="mb-3 border border-slate-400 p-3">
+          <div className="text-center">
+            <p className="text-[10px] font-semibold uppercase">
+              Ministerio de Educación - Dirección de Nivel Secundario
+            </p>
+            <p className="text-[11px] font-semibold">
+              Escuela Técnica “Valentín Virasoro”
+            </p>
+            <p className="mt-2 text-[12px] font-bold uppercase">
+              Planilla - Situación de Revista
+            </p>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+            <div>
+              <span className="font-semibold">Apellidos y nombres:</span>{' '}
+              {fieldValue(agent.full_name)}
+            </div>
+            <div>
+              <span className="font-semibold">DNI N°:</span>{' '}
+              {fieldValue(agent.dni)}
+            </div>
+            <div>
+              <span className="font-semibold">Legajo en junta:</span>{' '}
+              {fieldValue(agent.board_file_number)}
+            </div>
+            <div>
+              <span className="font-semibold">Legajo nivel secundario:</span>{' '}
+              {fieldValue(agent.secondary_board_number)}
+            </div>
+          </div>
+        </div>
+
+        <section className="rounded-none border border-slate-400 bg-white p-0 shadow-none">
+          <div className="px-0 py-0">
+            <RevistaTable
+              items={revistaActual}
+              emptyText="No hay situación de revista actual registrada."
+            />
+          </div>
+        </section>
+
+        <div className="mt-4 grid grid-cols-4 gap-6 text-center text-[10px]">
+          <div className="border-t border-slate-500 pt-2">FIRMA DEL AGENTE</div>
+          <div className="border-t border-slate-500 pt-2">FIRMA DEL SECRETARIO</div>
+          <div className="border-t border-slate-500 pt-2">SELLO INSTITUCIÓN</div>
+          <div className="border-t border-slate-500 pt-2">FIRMA Y SELLO DEL RECTOR</div>
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden">
+        <div className="mb-4">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Novedades
+          </p>
+          <h3 className="text-xl font-bold text-slate-800">Accesos rápidos</h3>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <button
+            type="button"
+            onClick={onOpenAusentes}
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-slate-300 hover:bg-slate-100"
+          >
+            <p className="text-sm font-semibold text-slate-800">Ausentes</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Total registrados: {agent.ausentes?.length ?? 0}
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenCapacitaciones}
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-slate-300 hover:bg-slate-100"
+          >
+            <p className="text-sm font-semibold text-slate-800">Capacitaciones</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Total registradas: {agent.capacitaciones?.length ?? 0}
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenLicencias}
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-slate-300 hover:bg-slate-100"
+          >
+            <p className="text-sm font-semibold text-slate-800">Licencias</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Total registradas: {agent.licencias?.length ?? 0}
+            </p>
+          </button>
+        </div>
+      </section>
+
+      {isDesignacionOpen ? (
+        <AssignmentModal
+          agentId={agent.id}
+          agentName={agent.full_name}
+          movementType="DESIGNACION"
+          onClose={() => setIsDesignacionOpen(false)}
+          onSuccess={onRefreshProfile}
+        />
+      ) : null}
+
+      {isBajaOpen ? (
+        <AssignmentModal
+          agentId={agent.id}
+          agentName={agent.full_name}
+          movementType="BAJA"
+          onClose={() => setIsBajaOpen(false)}
+          onSuccess={onRefreshProfile}
+        />
+      ) : null}
+    </div>
+  );
+}

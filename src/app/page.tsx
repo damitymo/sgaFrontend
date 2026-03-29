@@ -1,65 +1,367 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { api } from '@/lib/api';
+import { AppHeader } from '@/components/app-header';
+import { ProtectedPage } from '@/components/protected-page';
+
+type AgentItem = {
+  id: number;
+  full_name: string;
+  dni: string;
+  birth_date?: string | null;
+  email?: string | null;
+  is_active?: boolean;
+};
+
+type AttendanceItem = {
+  id: number;
+  agent_id: number;
+  record_type: 'LICENCIA' | 'AUSENTE' | 'CAPACITACION' | 'CONSTANCIA' | 'PARO';
+  start_date?: string | null;
+  end_date?: string | null;
+  quantity_days?: number | null;
+  description?: string | null;
+  document_number?: string | null;
+};
+
+type BirthdayItem = {
+  id: number;
+  full_name: string;
+  dni: string;
+  birth_date: string;
+  day: number;
+};
+
+function formatDate(date?: string | null) {
+  if (!date) return '-';
+
+  const safe = new Date(date);
+  if (Number.isNaN(safe.getTime())) return date;
+
+  return safe.toLocaleDateString('es-AR');
+}
+
+function getMonthName(month: number) {
+  const names = [
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
+  ];
+
+  return names[month - 1] || '';
+}
+
+export default function HomePage() {
+  const [agents, setAgents] = useState<AgentItem[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        setLoading(true);
+        setMessage('');
+
+        const [agentsResponse, attendanceResponse] = await Promise.all([
+          api.get('/agents'),
+          api.get('/attendance'),
+        ]);
+
+        setAgents((agentsResponse.data as AgentItem[]) ?? []);
+        setAttendance((attendanceResponse.data as AttendanceItem[]) ?? []);
+      } catch (error) {
+        console.error(error);
+        setMessage('No se pudieron cargar los datos del panel principal.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void loadDashboard();
+  }, []);
+
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+
+  const birthdaysThisMonth = useMemo<BirthdayItem[]>(() => {
+    return agents
+      .filter((agent) => Boolean(agent.birth_date))
+      .map((agent) => {
+        const birthDate = new Date(agent.birth_date as string);
+
+        return {
+          id: agent.id,
+          full_name: agent.full_name,
+          dni: agent.dni,
+          birth_date: agent.birth_date as string,
+          day: birthDate.getDate(),
+        };
+      })
+      .filter((agent) => {
+        const birthDate = new Date(agent.birth_date);
+        return birthDate.getMonth() + 1 === currentMonth;
+      })
+      .sort((a, b) => a.day - b.day);
+  }, [agents, currentMonth]);
+
+  const totalAttendance = attendance.length;
+
+  const countByType = useMemo(() => {
+    const initial = {
+      LICENCIA: 0,
+      AUSENTE: 0,
+      CAPACITACION: 0,
+      CONSTANCIA: 0,
+      PARO: 0,
+    };
+
+    return attendance.reduce((acc, item) => {
+      if (item.record_type in acc) {
+        acc[item.record_type] += 1;
+      }
+      return acc;
+    }, initial);
+  }, [attendance]);
+
+  const percentage = (count: number) => {
+    if (!totalAttendance) return 0;
+    return Number(((count / totalAttendance) * 100).toFixed(1));
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <ProtectedPage>
+      <main className="min-h-screen bg-slate-100">
+        <AppHeader />
+
+        <section className="mx-auto max-w-7xl px-6 py-8 space-y-6">
+          <div className="rounded-3xl border bg-white p-8 shadow-sm">
+            <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Panel principal
+            </p>
+            <h2 className="text-3xl font-bold text-slate-800">
+              Bienvenido al SGA
+            </h2>
+            <p className="mt-3 max-w-3xl text-slate-600">
+              Plataforma institucional para la gestión administrativa escolar de
+              agentes, POF, asistencias, designaciones, bajas y situación de
+              revista.
+            </p>
+          </div>
+
+          {loading && (
+            <div className="rounded-3xl border bg-white p-6 shadow-sm">
+              <p className="text-slate-600">Cargando panel...</p>
+            </div>
+          )}
+
+          {message && (
+            <div className="rounded-3xl border bg-white p-6 shadow-sm">
+              <p className="text-slate-700">{message}</p>
+            </div>
+          )}
+
+          {!loading && (
+            <>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <Link
+                  href="/docentes"
+                  className="rounded-3xl border bg-white p-6 shadow-sm transition hover:shadow-md"
+                >
+                  <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    Módulo
+                  </p>
+                  <h3 className="text-2xl font-bold text-slate-800">
+                    Docentes
+                  </h3>
+                  <p className="mt-3 text-slate-600">
+                    Buscar, agregar, modificar y eliminar docentes. Acceso a
+                    ficha completa, plazas, prestaciones y situación de revista.
+                  </p>
+                </Link>
+
+                <Link
+                  href="/pof"
+                  className="rounded-3xl border bg-white p-6 shadow-sm transition hover:shadow-md"
+                >
+                  <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    Módulo
+                  </p>
+                  <h3 className="text-2xl font-bold text-slate-800">POF</h3>
+                  <p className="mt-3 text-slate-600">
+                    Administración de plazas, asignaturas, horas, turnos y
+                    normativa legal asociada.
+                  </p>
+                </Link>
+
+                <Link
+                  href="/asistencia"
+                  className="rounded-3xl border bg-white p-6 shadow-sm transition hover:shadow-md"
+                >
+                  <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    Módulo
+                  </p>
+                  <h3 className="text-2xl font-bold text-slate-800">
+                    Asistencia
+                  </h3>
+                  <p className="mt-3 text-slate-600">
+                    Registro de licencias, ausentes, capacitaciones,
+                    constancias y demás novedades administrativas.
+                  </p>
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <div className="rounded-3xl border bg-white p-6 shadow-sm">
+                  <div className="mb-5">
+                    <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                      Indicadores generales
+                    </p>
+                    <h3 className="text-2xl font-bold text-slate-800">
+                      Estadísticas institucionales
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl border bg-slate-50 p-4">
+                      <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                        Docentes activos
+                      </p>
+                      <p className="mt-2 text-3xl font-bold text-slate-800">
+                        {agents.length}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border bg-slate-50 p-4">
+                      <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                        Total novedades
+                      </p>
+                      <p className="mt-2 text-3xl font-bold text-slate-800">
+                        {totalAttendance}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border bg-slate-50 p-4">
+                      <p className="font-semibold text-slate-800">Licencias</p>
+                      <p className="mt-2 text-2xl font-bold text-slate-700">
+                        {countByType.LICENCIA}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {percentage(countByType.LICENCIA)}%
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border bg-slate-50 p-4">
+                      <p className="font-semibold text-slate-800">Ausentes</p>
+                      <p className="mt-2 text-2xl font-bold text-slate-700">
+                        {countByType.AUSENTE}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {percentage(countByType.AUSENTE)}%
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border bg-slate-50 p-4">
+                      <p className="font-semibold text-slate-800">
+                        Capacitaciones
+                      </p>
+                      <p className="mt-2 text-2xl font-bold text-slate-700">
+                        {countByType.CAPACITACION}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {percentage(countByType.CAPACITACION)}%
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border bg-slate-50 p-4">
+                      <p className="font-semibold text-slate-800">
+                        Constancias
+                      </p>
+                      <p className="mt-2 text-2xl font-bold text-slate-700">
+                        {countByType.CONSTANCIA}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {percentage(countByType.CONSTANCIA)}%
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border bg-slate-50 p-4 md:col-span-2">
+                      <p className="font-semibold text-slate-800">Paros</p>
+                      <p className="mt-2 text-2xl font-bold text-slate-700">
+                        {countByType.PARO}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {percentage(countByType.PARO)}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border bg-white p-6 shadow-sm">
+                  <div className="mb-5">
+                    <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                      Agenda institucional
+                    </p>
+                    <h3 className="text-2xl font-bold text-slate-800">
+                      Cumpleaños de {getMonthName(currentMonth)}
+                    </h3>
+                  </div>
+
+                  {birthdaysThisMonth.length > 0 ? (
+                    <div className="space-y-3">
+                      {birthdaysThisMonth.map((item) => (
+                        <div
+                          key={item.id}
+                          className="rounded-2xl border bg-slate-50 p-4"
+                        >
+                          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                            <div>
+                              <p className="text-lg font-semibold text-slate-800">
+                                {item.full_name}
+                              </p>
+                              <p className="text-sm text-slate-600">
+                                DNI: {item.dni}
+                              </p>
+                            </div>
+
+                            <div className="rounded-xl border bg-white px-4 py-2 text-center">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Cumple
+                              </p>
+                              <p className="text-lg font-bold text-slate-800">
+                                {item.day}
+                              </p>
+                            </div>
+                          </div>
+
+                          <p className="mt-2 text-sm text-slate-500">
+                            Fecha de nacimiento: {formatDate(item.birth_date)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-slate-600">
+                      No hay cumpleaños cargados para este mes.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </section>
       </main>
-    </div>
+    </ProtectedPage>
   );
 }
