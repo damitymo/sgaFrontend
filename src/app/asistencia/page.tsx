@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { api } from '@/lib/api';
 import { AppHeader } from '@/components/app-header';
 import { ProtectedPage } from '@/components/protected-page';
-import { isAdmin } from '@/lib/auth';
+import { canManageSystem } from '@/lib/auth';
 
 type AttendanceItem = {
   id: number;
@@ -172,7 +172,7 @@ export default function AsistenciaPage() {
 
           {agent && (
             <>
-              {isAdmin() && (
+              {(!canManageSystem())  && (
                 <div className="rounded-3xl border bg-white p-6 shadow-sm space-y-4">
                   <h3 className="text-2xl font-bold text-slate-800">
                     Cargar registro administrativo

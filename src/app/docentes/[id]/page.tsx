@@ -433,11 +433,12 @@ export default function DocenteDetallePage() {
               </div>
 
               <DocenteDatosPanel
-                agent={agent}
-                onOpenLicencias={() => setOpenLicencias(true)}
-                onOpenAusentes={() => setOpenAusentes(true)}
-                onOpenCapacitaciones={() => setOpenCapacitaciones(true)}
-              />
+  agent={agent}
+  onOpenLicencias={() => setOpenLicencias(true)}
+  onOpenAusentes={() => setOpenAusentes(true)}
+  onOpenCapacitaciones={() => setOpenCapacitaciones(true)}
+  onRefreshProfile={loadFullProfile}
+/>
             </>
           ) : null}
 
