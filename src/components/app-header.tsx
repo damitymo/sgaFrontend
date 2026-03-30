@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 type LoggedUser = {
   id: number;
@@ -37,10 +38,10 @@ export function AppHeader() {
   };
 
   return (
-    <header className="border-b bg-white shadow-sm print:shadow-none">
+    <header className="border-b bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 print:shadow-none">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between print:max-w-none print:px-0 print:py-2">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border bg-white print:h-12 print:w-12 print:rounded-none print:border-none">
+          <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border bg-white dark:border-slate-700 dark:bg-slate-800 print:h-12 print:w-12 print:rounded-none print:border-none">
             <Image
               src="/logo.png"
               alt="Logo institucional"
@@ -51,10 +52,10 @@ export function AppHeader() {
           </div>
 
           <div>
-            <p className="text-sm font-medium uppercase tracking-wide text-slate-500 print:text-[10px]">
+            <p className="text-sm font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 print:text-[10px]">
               Sistema institucional
             </p>
-            <h1 className="text-xl font-bold text-slate-800 print:text-base">
+            <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100 print:text-base">
               SGA - Sistema de Gestión Administrativa Escolar
             </h1>
           </div>
@@ -64,38 +65,45 @@ export function AppHeader() {
           <nav className="flex flex-wrap items-center gap-2 print:hidden">
             <Link
               href="/"
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
             >
               Inicio
             </Link>
+
             <Link
               href="/docentes"
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
             >
               Docentes
             </Link>
+
             <Link
               href="/pof"
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
             >
               POF
             </Link>
+
             <Link
               href="/asistencia"
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
             >
               Asistencia
             </Link>
+
+            {/* 🔥 BOTÓN MODO OSCURO */}
+            <ThemeToggle />
+
             <button
               onClick={handleLogout}
-              className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
+              className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
             >
               Salir
             </button>
           </nav>
 
           {user && (
-            <div className="rounded-2xl border bg-slate-50 px-4 py-3 text-sm text-slate-700 print:hidden">
+            <div className="rounded-2xl border bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 print:hidden">
               <p>
                 <span className="font-semibold">Usuario:</span> {user.full_name}
               </p>
