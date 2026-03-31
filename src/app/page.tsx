@@ -6,6 +6,14 @@ import { api } from '@/lib/api';
 import { AppHeader } from '@/components/app-header';
 import { ProtectedPage } from '@/components/protected-page';
 
+type LoggedUser = {
+  id: number;
+  full_name: string;
+  username: string;
+  role: string;
+  agent_id?: number | null;
+};
+
 type AgentItem = {
   id: number;
   full_name: string;
@@ -62,13 +70,30 @@ function getMonthName(month: number) {
   return names[month - 1] || '';
 }
 
+function getLoggedUser(): LoggedUser | null {
+  if (typeof window === 'undefined') return null;
+
+  const stored = localStorage.getItem('user');
+  if (!stored) return null;
+
+  try {
+    return JSON.parse(stored) as LoggedUser;
+  } catch {
+    return null;
+  }
+}
+
 export default function HomePage() {
+  const [user, setUser] = useState<LoggedUser | null>(null);
   const [agents, setAgents] = useState<AgentItem[]>([]);
   const [attendance, setAttendance] = useState<AttendanceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
+    const loggedUser = getLoggedUser();
+    setUser(loggedUser);
+
     const loadDashboard = async () => {
       try {
         setLoading(true);
@@ -91,6 +116,8 @@ export default function HomePage() {
 
     void loadDashboard();
   }, []);
+
+  const isAgent = user?.role === 'AGENTE';
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -142,222 +169,325 @@ export default function HomePage() {
 
   return (
     <ProtectedPage>
-      <main className="min-h-screen bg-slate-100">
+      <main className="min-h-screen bg-slate-100 dark:bg-slate-950">
         <AppHeader />
 
-        <section className="mx-auto max-w-7xl px-6 py-8 space-y-6">
-          <div className="rounded-3xl border bg-white p-8 shadow-sm">
-            <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <section className="mx-auto max-w-7xl space-y-6 px-6 py-8">
+          <div className="rounded-3xl border bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Panel principal
             </p>
-            <h2 className="text-3xl font-bold text-slate-800">
-              Bienvenido al SGA
+            <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">
+              {isAgent ? 'Mi espacio personal' : 'Bienvenido al SGA'}
             </h2>
-            <p className="mt-3 max-w-3xl text-slate-600">
-              Plataforma institucional para la gestión administrativa escolar de
-              agentes, POF, asistencias, designaciones, bajas y situación de
-              revista.
+            <p className="mt-3 max-w-3xl text-slate-600 dark:text-slate-300">
+              {isAgent
+                ? 'Accedé a tu ficha, consultá tus novedades y visualizá tus estadísticas personales.'
+                : 'Plataforma institucional para la gestión administrativa escolar de agentes, POF, asistencias, designaciones, bajas y situación de revista.'}
             </p>
           </div>
 
           {loading && (
-            <div className="rounded-3xl border bg-white p-6 shadow-sm">
-              <p className="text-slate-600">Cargando panel...</p>
+            <div className="rounded-3xl border bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <p className="text-slate-600 dark:text-slate-300">Cargando panel...</p>
             </div>
           )}
 
           {message && (
-            <div className="rounded-3xl border bg-white p-6 shadow-sm">
-              <p className="text-slate-700">{message}</p>
+            <div className="rounded-3xl border bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <p className="text-slate-700 dark:text-slate-200">{message}</p>
             </div>
           )}
 
           {!loading && (
             <>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                <Link
-                  href="/docentes"
-                  className="rounded-3xl border bg-white p-6 shadow-sm transition hover:shadow-md"
-                >
-                  <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                    Módulo
-                  </p>
-                  <h3 className="text-2xl font-bold text-slate-800">
-                    Docentes
-                  </h3>
-                  <p className="mt-3 text-slate-600">
-                    Buscar, agregar, modificar y eliminar docentes. Acceso a
-                    ficha completa, plazas, prestaciones y situación de revista.
-                  </p>
-                </Link>
+              {!isAgent ? (
+                <>
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    <Link
+                      href="/docentes"
+                      className="rounded-3xl border bg-white p-6 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+                    >
+                      <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        Módulo
+                      </p>
+                      <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                        Docentes
+                      </h3>
+                      <p className="mt-3 text-slate-600 dark:text-slate-300">
+                        Buscar, agregar, modificar y eliminar docentes. Acceso a
+                        ficha completa, plazas, prestaciones y situación de revista.
+                      </p>
+                    </Link>
 
-                <Link
-                  href="/pof"
-                  className="rounded-3xl border bg-white p-6 shadow-sm transition hover:shadow-md"
-                >
-                  <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                    Módulo
-                  </p>
-                  <h3 className="text-2xl font-bold text-slate-800">POF</h3>
-                  <p className="mt-3 text-slate-600">
-                    Administración de plazas, asignaturas, horas, turnos y
-                    normativa legal asociada.
-                  </p>
-                </Link>
+                    <Link
+                      href="/pof"
+                      className="rounded-3xl border bg-white p-6 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+                    >
+                      <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        Módulo
+                      </p>
+                      <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                        POF
+                      </h3>
+                      <p className="mt-3 text-slate-600 dark:text-slate-300">
+                        Administración de plazas, asignaturas, horas, turnos y
+                        normativa legal asociada.
+                      </p>
+                    </Link>
 
-                <Link
-                  href="/asistencia"
-                  className="rounded-3xl border bg-white p-6 shadow-sm transition hover:shadow-md"
-                >
-                  <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                    Módulo
-                  </p>
-                  <h3 className="text-2xl font-bold text-slate-800">
-                    Asistencia
-                  </h3>
-                  <p className="mt-3 text-slate-600">
-                    Registro de licencias, ausentes, capacitaciones,
-                    constancias y demás novedades administrativas.
-                  </p>
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <div className="rounded-3xl border bg-white p-6 shadow-sm">
-                  <div className="mb-5">
-                    <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                      Indicadores generales
-                    </p>
-                    <h3 className="text-2xl font-bold text-slate-800">
-                      Estadísticas institucionales
-                    </h3>
+                    <Link
+                      href="/asistencia"
+                      className="rounded-3xl border bg-white p-6 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+                    >
+                      <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        Módulo
+                      </p>
+                      <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                        Asistencia
+                      </h3>
+                      <p className="mt-3 text-slate-600 dark:text-slate-300">
+                        Registro de licencias, ausentes, capacitaciones,
+                        constancias y demás novedades administrativas.
+                      </p>
+                    </Link>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div className="rounded-2xl border bg-slate-50 p-4">
-                      <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                        Docentes activos
-                      </p>
-                      <p className="mt-2 text-3xl font-bold text-slate-800">
-                        {agents.length}
-                      </p>
-                    </div>
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <div className="rounded-3xl border bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                      <div className="mb-5">
+                        <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          Indicadores generales
+                        </p>
+                        <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                          Estadísticas institucionales
+                        </h3>
+                      </div>
 
-                    <div className="rounded-2xl border bg-slate-50 p-4">
-                      <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                        Total novedades
-                      </p>
-                      <p className="mt-2 text-3xl font-bold text-slate-800">
-                        {totalAttendance}
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl border bg-slate-50 p-4">
-                      <p className="font-semibold text-slate-800">Licencias</p>
-                      <p className="mt-2 text-2xl font-bold text-slate-700">
-                        {countByType.LICENCIA}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {percentage(countByType.LICENCIA)}%
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl border bg-slate-50 p-4">
-                      <p className="font-semibold text-slate-800">Ausentes</p>
-                      <p className="mt-2 text-2xl font-bold text-slate-700">
-                        {countByType.AUSENTE}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {percentage(countByType.AUSENTE)}%
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl border bg-slate-50 p-4">
-                      <p className="font-semibold text-slate-800">
-                        Capacitaciones
-                      </p>
-                      <p className="mt-2 text-2xl font-bold text-slate-700">
-                        {countByType.CAPACITACION}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {percentage(countByType.CAPACITACION)}%
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl border bg-slate-50 p-4">
-                      <p className="font-semibold text-slate-800">
-                        Constancias
-                      </p>
-                      <p className="mt-2 text-2xl font-bold text-slate-700">
-                        {countByType.CONSTANCIA}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {percentage(countByType.CONSTANCIA)}%
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl border bg-slate-50 p-4 md:col-span-2">
-                      <p className="font-semibold text-slate-800">Paros</p>
-                      <p className="mt-2 text-2xl font-bold text-slate-700">
-                        {countByType.PARO}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {percentage(countByType.PARO)}%
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-3xl border bg-white p-6 shadow-sm">
-                  <div className="mb-5">
-                    <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                      Agenda institucional
-                    </p>
-                    <h3 className="text-2xl font-bold text-slate-800">
-                      Cumpleaños de {getMonthName(currentMonth)}
-                    </h3>
-                  </div>
-
-                  {birthdaysThisMonth.length > 0 ? (
-                    <div className="space-y-3">
-                      {birthdaysThisMonth.map((item) => (
-                        <div
-                          key={item.id}
-                          className="rounded-2xl border bg-slate-50 p-4"
-                        >
-                          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                            <div>
-                              <p className="text-lg font-semibold text-slate-800">
-                                {item.full_name}
-                              </p>
-                              <p className="text-sm text-slate-600">
-                                DNI: {item.dni}
-                              </p>
-                            </div>
-
-                            <div className="rounded-xl border bg-white px-4 py-2 text-center">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                Cumple
-                              </p>
-                              <p className="text-lg font-bold text-slate-800">
-                                {item.day}
-                              </p>
-                            </div>
-                          </div>
-
-                          <p className="mt-2 text-sm text-slate-500">
-                            Fecha de nacimiento: {formatDate(item.birth_date)}
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="rounded-2xl border bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+                          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                            Docentes activos
+                          </p>
+                          <p className="mt-2 text-3xl font-bold text-slate-800 dark:text-slate-100">
+                            {agents.length}
                           </p>
                         </div>
-                      ))}
+
+                        <div className="rounded-2xl border bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+                          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                            Total novedades
+                          </p>
+                          <p className="mt-2 text-3xl font-bold text-slate-800 dark:text-slate-100">
+                            {totalAttendance}
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl border bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+                          <p className="font-semibold text-slate-800 dark:text-slate-100">Licencias</p>
+                          <p className="mt-2 text-2xl font-bold text-slate-700 dark:text-slate-200">
+                            {countByType.LICENCIA}
+                          </p>
+                          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            {percentage(countByType.LICENCIA)}%
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl border bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+                          <p className="font-semibold text-slate-800 dark:text-slate-100">Ausentes</p>
+                          <p className="mt-2 text-2xl font-bold text-slate-700 dark:text-slate-200">
+                            {countByType.AUSENTE}
+                          </p>
+                          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            {percentage(countByType.AUSENTE)}%
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl border bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+                          <p className="font-semibold text-slate-800 dark:text-slate-100">
+                            Capacitaciones
+                          </p>
+                          <p className="mt-2 text-2xl font-bold text-slate-700 dark:text-slate-200">
+                            {countByType.CAPACITACION}
+                          </p>
+                          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            {percentage(countByType.CAPACITACION)}%
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl border bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+                          <p className="font-semibold text-slate-800 dark:text-slate-100">
+                            Constancias
+                          </p>
+                          <p className="mt-2 text-2xl font-bold text-slate-700 dark:text-slate-200">
+                            {countByType.CONSTANCIA}
+                          </p>
+                          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            {percentage(countByType.CONSTANCIA)}%
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl border bg-slate-50 p-4 md:col-span-2 dark:border-slate-700 dark:bg-slate-800">
+                          <p className="font-semibold text-slate-800 dark:text-slate-100">Paros</p>
+                          <p className="mt-2 text-2xl font-bold text-slate-700 dark:text-slate-200">
+                            {countByType.PARO}
+                          </p>
+                          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            {percentage(countByType.PARO)}%
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  ) : (
-                    <p className="text-slate-600">
-                      No hay cumpleaños cargados para este mes.
-                    </p>
-                  )}
+
+                    <div className="rounded-3xl border bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                      <div className="mb-5">
+                        <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          Agenda institucional
+                        </p>
+                        <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                          Cumpleaños de {getMonthName(currentMonth)}
+                        </h3>
+                      </div>
+
+                      {birthdaysThisMonth.length > 0 ? (
+                        <div className="space-y-3">
+                          {birthdaysThisMonth.map((item) => (
+                            <div
+                              key={item.id}
+                              className="rounded-2xl border bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800"
+                            >
+                              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                  <p className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                                    {item.full_name}
+                                  </p>
+                                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                                    DNI: {item.dni}
+                                  </p>
+                                </div>
+
+                                <div className="rounded-xl border bg-white px-4 py-2 text-center dark:border-slate-700 dark:bg-slate-900">
+                                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                    Cumple
+                                  </p>
+                                  <p className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                                    {item.day}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                                Fecha de nacimiento: {formatDate(item.birth_date)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-slate-600 dark:text-slate-300">
+                          No hay cumpleaños cargados para este mes.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                  <div className="rounded-3xl border bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <div className="mb-5">
+                      <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        Mi espacio
+                      </p>
+                      <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                        Accesos personales
+                      </h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                      {user?.agent_id ? (
+                        <Link
+                          href={`/docentes/${user.agent_id}`}
+                          className="rounded-2xl border bg-slate-50 p-4 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
+                        >
+                          <p className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                            Mi perfil docente
+                          </p>
+                          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                            Consultá tu ficha, tu situación de revista y tus novedades.
+                          </p>
+                        </Link>
+                      ) : (
+                        <div className="rounded-2xl border bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+                          <p className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                            Perfil no vinculado
+                          </p>
+                          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                            Tu usuario AGENTE todavía no está vinculado a un docente/agente.
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="rounded-2xl border bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+                        <p className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                          Mis estadísticas
+                        </p>
+                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                          Visualizá tus licencias, ausentes, capacitaciones y demás novedades registradas.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-3xl border bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <div className="mb-5">
+                      <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        Agenda institucional
+                      </p>
+                      <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                        Cumpleaños de {getMonthName(currentMonth)}
+                      </h3>
+                    </div>
+
+                    {birthdaysThisMonth.length > 0 ? (
+                      <div className="space-y-3">
+                        {birthdaysThisMonth.map((item) => (
+                          <div
+                            key={item.id}
+                            className="rounded-2xl border bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800"
+                          >
+                            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                              <div>
+                                <p className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                                  {item.full_name}
+                                </p>
+                                <p className="text-sm text-slate-600 dark:text-slate-300">
+                                  DNI: {item.dni}
+                                </p>
+                              </div>
+
+                              <div className="rounded-xl border bg-white px-4 py-2 text-center dark:border-slate-700 dark:bg-slate-900">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                  Cumple
+                                </p>
+                                <p className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                                  {item.day}
+                                </p>
+                              </div>
+                            </div>
+
+                            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                              Fecha de nacimiento: {formatDate(item.birth_date)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-600 dark:text-slate-300">
+                        No hay cumpleaños cargados para este mes.
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           )}
         </section>

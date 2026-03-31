@@ -126,8 +126,9 @@ export default function AsistenciaPage() {
     }
   };
 
-  return (
-    <ProtectedPage>
+  
+    return (
+  <ProtectedPage allowedRoles={['ADMIN', 'ADMINISTRATIVO']}>
       <main className="min-h-screen bg-slate-100">
         <AppHeader />
 
@@ -172,7 +173,7 @@ export default function AsistenciaPage() {
 
           {agent && (
             <>
-              {(!canManageSystem())  && (
+              {canManageSystem() && (
                 <div className="rounded-3xl border bg-white p-6 shadow-sm space-y-4">
                   <h3 className="text-2xl font-bold text-slate-800">
                     Cargar registro administrativo

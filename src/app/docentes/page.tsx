@@ -491,7 +491,7 @@ export default function DocentesPage() {
 
   if (loadingUser) {
     return (
-      <ProtectedPage>
+      <ProtectedPage allowedRoles={['ADMIN', 'ADMINISTRATIVO']}>
         <main className="min-h-screen bg-slate-100">
           <AppHeader />
           <section className="mx-auto max-w-7xl px-6 py-8">
@@ -505,7 +505,7 @@ export default function DocentesPage() {
   }
 
   return (
-    <ProtectedPage>
+    <ProtectedPage allowedRoles={['ADMIN', 'ADMINISTRATIVO']}>
       <main className="min-h-screen bg-slate-100 print:bg-white">
         <AppHeader />
 

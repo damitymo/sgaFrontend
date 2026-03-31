@@ -380,8 +380,9 @@ export default function PofPage() {
     setHistoryRows([]);
   };
 
-  return (
-    <ProtectedPage>
+  
+    return (
+  <ProtectedPage allowedRoles={['ADMIN', 'ADMINISTRATIVO']}>
       <main className="min-h-screen bg-slate-100 print:bg-white">
         <AppHeader />
 

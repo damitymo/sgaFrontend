@@ -1,35 +1,44 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 type Props = {
   children: React.ReactNode;
+  allowedRoles?: string[];
 };
 
-export function ProtectedPage({ children }: Props) {
+export function ProtectedPage({ children, allowedRoles }: Props) {
   const router = useRouter();
   const ranRef = useRef(false);
-  const [ready, setReady] = useState(false);
-  const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
     if (ranRef.current) return;
     ranRef.current = true;
 
     const token = localStorage.getItem('token');
+    const userRaw = localStorage.getItem('user');
 
-    if (!token) {
+    if (!token || !userRaw) {
       router.replace('/login');
       return;
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAuthorized(true);
-    setReady(true);
-  }, [router]);
+    try {
+      const user = JSON.parse(userRaw) as { role?: string };
 
-  if (!ready || !authorized) return null;
+      if (allowedRoles && (!user.role || !allowedRoles.includes(user.role))) {
+        router.replace('/');
+      }
+    } catch {
+      router.replace('/login');
+    }
+  }, [router, allowedRoles]);
+
+  const token =
+    typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
+  if (!token) return null;
 
   return <>{children}</>;
 }

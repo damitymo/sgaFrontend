@@ -10,6 +10,7 @@ type LoggedUser = {
   full_name: string;
   username: string;
   role: string;
+  agent_id?: number | null;
 };
 
 export function AppHeader() {
@@ -30,6 +31,8 @@ export function AppHeader() {
       }
     }
   }
+
+  const isAgent = user?.role === 'AGENTE';
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -70,28 +73,38 @@ export function AppHeader() {
               Inicio
             </Link>
 
-            <Link
-              href="/docentes"
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
-            >
-              Docentes
-            </Link>
+            {!isAgent ? (
+              <>
+                <Link
+                  href="/docentes"
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                >
+                  Docentes
+                </Link>
 
-            <Link
-              href="/pof"
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
-            >
-              POF
-            </Link>
+                <Link
+                  href="/pof"
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                >
+                  POF
+                </Link>
 
-            <Link
-              href="/asistencia"
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
-            >
-              Asistencia
-            </Link>
+                <Link
+                  href="/asistencia"
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                >
+                  Asistencia
+                </Link>
+              </>
+            ) : user?.agent_id ? (
+              <Link
+                href={`/docentes/${user.agent_id}`}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+              >
+                Mi perfil
+              </Link>
+            ) : null}
 
-            {/* 🔥 BOTÓN MODO OSCURO */}
             <ThemeToggle />
 
             <button
