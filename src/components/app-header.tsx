@@ -108,7 +108,7 @@ export function AppHeader() {
               </>
             ) : user?.agent_id ? (
               <Link
-                href={`/docentes/${user.agent_id}`}
+                href="/mi-perfil"
                 className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
               >
                 Mi perfil
