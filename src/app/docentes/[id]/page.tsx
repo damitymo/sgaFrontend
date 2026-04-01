@@ -14,6 +14,7 @@ type AuthUser = {
   email?: string | null;
   role: string;
   is_active: boolean;
+  agent_id?: number | null;
 };
 
 type RevistaItem = {
@@ -228,7 +229,7 @@ export default function DocenteDetallePage() {
 
   useEffect(() => {
     if (!Number.isNaN(docenteId)) {
-      loadFullProfile();
+      void loadFullProfile();
     }
   }, [docenteId]);
 
@@ -354,7 +355,7 @@ export default function DocenteDetallePage() {
         <main className="min-h-screen bg-slate-100">
           <AppHeader />
           <section className="mx-auto max-w-7xl px-6 py-8">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm text-sm text-slate-600">
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
               Cargando ficha docente...
             </div>
           </section>
@@ -365,28 +366,28 @@ export default function DocenteDetallePage() {
 
   return (
     <ProtectedPage>
-      <main className="min-h-screen bg-slate-100 print:bg-white">
+      <main className="min-h-screen bg-slate-100 print:bg-white dark:bg-slate-950">
         <AppHeader />
 
         <section className="mx-auto max-w-7xl space-y-6 px-6 py-8 print:max-w-none print:px-4 print:py-4">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden dark:border-slate-800 dark:bg-slate-900">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
               Ficha docente
             </p>
-            <h2 className="text-3xl font-bold text-slate-800">
+            <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">
               {agent?.full_name || 'Docente'}
             </h2>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
               Vista individual en ventana aparte.
             </p>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden dark:border-slate-800 dark:bg-slate-900">
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={handlePrint}
-                className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
               >
                 Imprimir ficha
               </button>
@@ -396,7 +397,7 @@ export default function DocenteDetallePage() {
                   <button
                     type="button"
                     onClick={openEditModal}
-                    className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                   >
                     Modificar docente
                   </button>
@@ -404,7 +405,7 @@ export default function DocenteDetallePage() {
                   <button
                     type="button"
                     onClick={handleDelete}
-                    className="rounded-2xl border border-red-300 bg-white px-6 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+                    className="rounded-2xl border border-red-300 bg-white px-6 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-800 dark:bg-slate-800 dark:text-red-300 dark:hover:bg-red-900/30"
                   >
                     Baja docente
                   </button>
@@ -413,7 +414,7 @@ export default function DocenteDetallePage() {
             </div>
 
             {message ? (
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                 {message}
               </div>
             ) : null}
@@ -433,24 +434,26 @@ export default function DocenteDetallePage() {
               </div>
 
               <DocenteDatosPanel
-  agent={agent}
-  onOpenLicencias={() => setOpenLicencias(true)}
-  onOpenAusentes={() => setOpenAusentes(true)}
-  onOpenCapacitaciones={() => setOpenCapacitaciones(true)}
-  onRefreshProfile={loadFullProfile}
-/>
+                agent={agent}
+                onOpenLicencias={() => setOpenLicencias(true)}
+                onOpenAusentes={() => setOpenAusentes(true)}
+                onOpenCapacitaciones={() => setOpenCapacitaciones(true)}
+                onRefreshProfile={loadFullProfile}
+              />
             </>
           ) : null}
 
           {openLicencias && agent ? (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:hidden">
-              <div className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+              <div className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-slate-800">Licencias</h3>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                    Licencias
+                  </h3>
                   <button
                     type="button"
                     onClick={() => setOpenLicencias(false)}
-                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-100"
                   >
                     Cerrar
                   </button>
@@ -461,7 +464,7 @@ export default function DocenteDetallePage() {
                     {agent.licencias.map((item, index) => (
                       <div
                         key={item.id ?? index}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                       >
                         <p>
                           <span className="font-semibold">Desde:</span>{' '}
@@ -487,7 +490,7 @@ export default function DocenteDetallePage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
                     No hay licencias registradas.
                   </p>
                 )}
@@ -497,13 +500,15 @@ export default function DocenteDetallePage() {
 
           {openAusentes && agent ? (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:hidden">
-              <div className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+              <div className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-slate-800">Ausentes</h3>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                    Ausentes
+                  </h3>
                   <button
                     type="button"
                     onClick={() => setOpenAusentes(false)}
-                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-100"
                   >
                     Cerrar
                   </button>
@@ -514,7 +519,7 @@ export default function DocenteDetallePage() {
                     {agent.ausentes.map((item, index) => (
                       <div
                         key={item.id ?? index}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                       >
                         <p>
                           <span className="font-semibold">Desde:</span>{' '}
@@ -540,7 +545,7 @@ export default function DocenteDetallePage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
                     No hay ausentes registrados.
                   </p>
                 )}
@@ -550,13 +555,15 @@ export default function DocenteDetallePage() {
 
           {openCapacitaciones && agent ? (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:hidden">
-              <div className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+              <div className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-slate-800">Capacitaciones</h3>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                    Capacitaciones
+                  </h3>
                   <button
                     type="button"
                     onClick={() => setOpenCapacitaciones(false)}
-                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-100"
                   >
                     Cerrar
                   </button>
@@ -567,7 +574,7 @@ export default function DocenteDetallePage() {
                     {agent.capacitaciones.map((item, index) => (
                       <div
                         key={item.id ?? index}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                       >
                         <p>
                           <span className="font-semibold">Desde:</span>{' '}
@@ -593,7 +600,7 @@ export default function DocenteDetallePage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
                     No hay capacitaciones registradas.
                   </p>
                 )}
@@ -603,13 +610,13 @@ export default function DocenteDetallePage() {
 
           {isEditOpen ? (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:hidden">
-              <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+              <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
                 <div className="mb-5 flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                       Modificar docente
                     </p>
-                    <h3 className="text-2xl font-bold text-slate-800">
+                    <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
                       {agent?.full_name || '-'}
                     </h3>
                   </div>
@@ -617,7 +624,7 @@ export default function DocenteDetallePage() {
                   <button
                     type="button"
                     onClick={closeModals}
-                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-100"
                   >
                     Cerrar
                   </button>
@@ -629,7 +636,7 @@ export default function DocenteDetallePage() {
                       type="text"
                       value={form.last_name}
                       onChange={(e) => updateForm('last_name', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
 
@@ -638,7 +645,7 @@ export default function DocenteDetallePage() {
                       type="text"
                       value={form.first_name}
                       onChange={(e) => updateForm('first_name', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
 
@@ -647,7 +654,7 @@ export default function DocenteDetallePage() {
                       type="text"
                       value={form.dni}
                       onChange={(e) => updateForm('dni', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
 
@@ -656,7 +663,7 @@ export default function DocenteDetallePage() {
                       type="date"
                       value={form.birth_date}
                       onChange={(e) => updateForm('birth_date', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
 
@@ -665,7 +672,7 @@ export default function DocenteDetallePage() {
                       type="email"
                       value={form.email}
                       onChange={(e) => updateForm('email', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
 
@@ -674,7 +681,7 @@ export default function DocenteDetallePage() {
                       type="text"
                       value={form.address}
                       onChange={(e) => updateForm('address', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
 
@@ -683,7 +690,7 @@ export default function DocenteDetallePage() {
                       type="text"
                       value={form.phone}
                       onChange={(e) => updateForm('phone', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
 
@@ -692,7 +699,7 @@ export default function DocenteDetallePage() {
                       type="text"
                       value={form.mobile}
                       onChange={(e) => updateForm('mobile', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
 
@@ -703,7 +710,7 @@ export default function DocenteDetallePage() {
                       onChange={(e) =>
                         updateForm('board_file_number', e.target.value)
                       }
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
 
@@ -714,7 +721,7 @@ export default function DocenteDetallePage() {
                       onChange={(e) =>
                         updateForm('secondary_board_number', e.target.value)
                       }
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
 
@@ -725,7 +732,7 @@ export default function DocenteDetallePage() {
                       onChange={(e) =>
                         updateForm('school_entry_date', e.target.value)
                       }
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
 
@@ -736,7 +743,7 @@ export default function DocenteDetallePage() {
                       onChange={(e) =>
                         updateForm('teaching_entry_date', e.target.value)
                       }
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
 
@@ -747,7 +754,7 @@ export default function DocenteDetallePage() {
                       onChange={(e) =>
                         updateForm('identity_card_number', e.target.value)
                       }
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
 
@@ -756,7 +763,7 @@ export default function DocenteDetallePage() {
                       value={form.titles}
                       onChange={(e) => updateForm('titles', e.target.value)}
                       rows={3}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
                 </div>
@@ -774,7 +781,7 @@ export default function DocenteDetallePage() {
                   <button
                     type="button"
                     onClick={closeModals}
-                    className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                   >
                     Cancelar
                   </button>
@@ -801,7 +808,7 @@ function FormField({
 }) {
   return (
     <div className={full ? 'md:col-span-2' : ''}>
-      <label className="mb-2 block text-sm font-semibold text-slate-700">
+      <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
         {label}
       </label>
       {children}
