@@ -33,6 +33,7 @@ export function AppHeader() {
   }
 
   const isAgent = user?.role === 'AGENTE';
+  const isAdmin = user?.role === 'ADMIN';
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -95,6 +96,15 @@ export function AppHeader() {
                 >
                   Asistencia
                 </Link>
+
+                {isAdmin ? (
+                  <Link
+                    href="/usuarios"
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                  >
+                    Usuarios
+                  </Link>
+                ) : null}
               </>
             ) : user?.agent_id ? (
               <Link
