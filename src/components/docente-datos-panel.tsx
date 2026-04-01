@@ -3,6 +3,14 @@
 import { useMemo, useState } from 'react';
 import { AssignmentModal } from '@/components/assignment-modal';
 
+type LoggedUser = {
+  id: number;
+  full_name: string;
+  username: string;
+  role: string;
+  agent_id?: number | null;
+};
+
 type RevistaItem = {
   id?: number;
   revista_type?: string;
@@ -114,6 +122,19 @@ function shiftLabel(value?: string | null) {
   return value;
 }
 
+function getLoggedUser(): LoggedUser | null {
+  if (typeof window === 'undefined') return null;
+
+  const storedUser = localStorage.getItem('user');
+  if (!storedUser) return null;
+
+  try {
+    return JSON.parse(storedUser) as LoggedUser;
+  } catch {
+    return null;
+  }
+}
+
 function InfoBox({
   label,
   value,
@@ -128,7 +149,7 @@ function InfoBox({
       <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 print:text-[10px]">
         {label}
       </p>
-      <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 print:rounded-none print:border-slate-400 print:px-2 print:py-1 print:text-[11px]">
+      <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 print:rounded-none print:border-slate-400 print:px-2 print:py-1 print:text-[11px] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
         {value}
       </div>
     </div>
@@ -144,7 +165,7 @@ function RevistaTable({
 }) {
   if (!items.length) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 print:rounded-none print:border-slate-400 print:bg-white print:px-2 print:py-2 print:text-[11px]">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 print:rounded-none print:border-slate-400 print:bg-white print:px-2 print:py-2 print:text-[11px] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
         {emptyText}
       </div>
     );
@@ -154,38 +175,38 @@ function RevistaTable({
     <div className="overflow-x-auto">
       <table className="min-w-full border-collapse text-sm print:text-[10px]">
         <thead>
-          <tr className="bg-slate-100 text-slate-700 print:bg-white">
-            <th className="border border-slate-300 px-2 py-2 text-left font-bold print:px-1 print:py-1">
+          <tr className="bg-slate-100 text-slate-700 print:bg-white dark:bg-slate-800 dark:text-slate-200">
+            <th className="border border-slate-300 px-2 py-2 text-left font-bold print:px-1 print:py-1 dark:border-slate-700">
               PLAZA
             </th>
-            <th className="border border-slate-300 px-2 py-2 text-left font-bold print:px-1 print:py-1">
+            <th className="border border-slate-300 px-2 py-2 text-left font-bold print:px-1 print:py-1 dark:border-slate-700">
               ASIGNATURA / CARGO
             </th>
-            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1">
+            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1 dark:border-slate-700">
               HS.
             </th>
-            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1">
+            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1 dark:border-slate-700">
               CURSO
             </th>
-            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1">
+            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1 dark:border-slate-700">
               DIV
             </th>
-            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1">
+            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1 dark:border-slate-700">
               TURNO
             </th>
-            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1">
+            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1 dark:border-slate-700">
               DESDE
             </th>
-            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1">
+            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1 dark:border-slate-700">
               HASTA
             </th>
-            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1">
+            <th className="border border-slate-300 px-2 py-2 text-center font-bold print:px-1 print:py-1 dark:border-slate-700">
               CARÁCTER
             </th>
-            <th className="border border-slate-300 px-2 py-2 text-left font-bold print:px-1 print:py-1">
+            <th className="border border-slate-300 px-2 py-2 text-left font-bold print:px-1 print:py-1 dark:border-slate-700">
               NORMA LEGAL
             </th>
-            <th className="border border-slate-300 px-2 py-2 text-left font-bold print:px-1 print:py-1">
+            <th className="border border-slate-300 px-2 py-2 text-left font-bold print:px-1 print:py-1 dark:border-slate-700">
               OBSERVACIONES
             </th>
           </tr>
@@ -195,39 +216,39 @@ function RevistaTable({
           {items.map((item, index) => (
             <tr
               key={item.id ?? `${item.pof_position?.plaza_number}-${index}`}
-              className="bg-white"
+              className="bg-white dark:bg-slate-900"
             >
-              <td className="border border-slate-300 px-2 py-2 align-top print:px-1 print:py-1">
+              <td className="border border-slate-300 px-2 py-2 align-top print:px-1 print:py-1 dark:border-slate-700">
                 {fieldValue(item.pof_position?.plaza_number)}
               </td>
-              <td className="border border-slate-300 px-2 py-2 align-top print:px-1 print:py-1">
+              <td className="border border-slate-300 px-2 py-2 align-top print:px-1 print:py-1 dark:border-slate-700">
                 {fieldValue(item.pof_position?.subject_name)}
               </td>
-              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1">
+              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1 dark:border-slate-700">
                 {fieldValue(item.pof_position?.hours_count)}
               </td>
-              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1">
+              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1 dark:border-slate-700">
                 {fieldValue(item.pof_position?.course)}
               </td>
-              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1">
+              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1 dark:border-slate-700">
                 {fieldValue(item.pof_position?.division)}
               </td>
-              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1">
+              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1 dark:border-slate-700">
                 {shiftLabel(item.pof_position?.shift)}
               </td>
-              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1">
+              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1 dark:border-slate-700">
                 {formatDateCompact(item.start_date)}
               </td>
-              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1">
+              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1 dark:border-slate-700">
                 {item.end_date ? formatDateCompact(item.end_date) : 'CONTINUA'}
               </td>
-              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1">
+              <td className="border border-slate-300 px-2 py-2 text-center align-top print:px-1 print:py-1 dark:border-slate-700">
                 {fieldValue(item.character_type)}
               </td>
-              <td className="border border-slate-300 px-2 py-2 align-top print:px-1 print:py-1">
+              <td className="border border-slate-300 px-2 py-2 align-top print:px-1 print:py-1 dark:border-slate-700">
                 {fieldValue(item.legal_norm || item.resolution_number)}
               </td>
-              <td className="border border-slate-300 px-2 py-2 align-top print:px-1 print:py-1">
+              <td className="border border-slate-300 px-2 py-2 align-top print:px-1 print:py-1 dark:border-slate-700">
                 {fieldValue(item.notes)}
               </td>
             </tr>
@@ -249,29 +270,30 @@ export function DocenteDatosPanel({
   const [isDesignacionOpen, setIsDesignacionOpen] = useState(false);
   const [isBajaOpen, setIsBajaOpen] = useState(false);
 
-const revistaActual = useMemo(
-  () => agent.revista_actual ?? [],
-  [agent.revista_actual],
-);
+  const loggedUser = getLoggedUser();
+  const canManageMovements =
+    loggedUser?.role === 'ADMIN' || loggedUser?.role === 'ADMINISTRATIVO';
 
-const revistaHistorica = useMemo(
-  () => agent.revista_historica ?? [],
-  [agent.revista_historica],
-);
+  const revistaActual = useMemo(() => agent.revista_actual ?? [], [agent.revista_actual]);
 
-const revistaItems = useMemo(
-  () => (revistaView === 'actual' ? revistaActual : revistaHistorica),
-  [revistaView, revistaActual, revistaHistorica],
-);
+  const revistaHistorica = useMemo(
+    () => agent.revista_historica ?? [],
+    [agent.revista_historica],
+  );
+
+  const revistaItems = useMemo(
+    () => (revistaView === 'actual' ? revistaActual : revistaHistorica),
+    [revistaView, revistaActual, revistaHistorica],
+  );
 
   return (
     <div className="space-y-6 print:space-y-4">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:rounded-none print:border-slate-400 print:p-4 print:shadow-none">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:rounded-none print:border-slate-400 print:p-4 print:shadow-none dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-5 print:mb-3">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 print:text-[10px]">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 print:text-[10px] dark:text-slate-400">
             Datos personales
           </p>
-          <h3 className="text-2xl font-bold text-slate-800 print:text-lg">
+          <h3 className="text-2xl font-bold text-slate-800 print:text-lg dark:text-slate-100">
             {agent.full_name}
           </h3>
         </div>
@@ -306,44 +328,48 @@ const revistaItems = useMemo(
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden">
+      {canManageMovements ? (
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden dark:border-slate-800 dark:bg-slate-900">
+          <div className="mb-4">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              Movimientos
+            </p>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+              Designación / baja
+            </h3>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              Registrá movimientos institucionales para este docente.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setIsDesignacionOpen(true)}
+              className="rounded-2xl bg-slate-800 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+            >
+              Nueva designación
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsBajaOpen(true)}
+              className="rounded-2xl border border-red-300 bg-white px-5 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-800 dark:bg-slate-900 dark:text-red-300 dark:hover:bg-red-900/30"
+            >
+              Registrar baja
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-4">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Movimientos
-          </p>
-          <h3 className="text-xl font-bold text-slate-800">
-            Designación / baja
-          </h3>
-          <p className="mt-1 text-sm text-slate-600">
-            Registrá movimientos institucionales para este docente.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => setIsDesignacionOpen(true)}
-            className="rounded-2xl bg-slate-800 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
-          >
-            Nueva designación
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsBajaOpen(true)}
-            className="rounded-2xl border border-red-300 bg-white px-5 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
-          >
-            Registrar baja
-          </button>
-        </div>
-      </section>
-
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden">
-        <div className="mb-4">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
             Situación de revista
           </p>
-          <h3 className="text-xl font-bold text-slate-800">Vista seleccionada</h3>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+            Vista seleccionada
+          </h3>
         </div>
 
         <div className="flex flex-wrap gap-3">
@@ -353,7 +379,7 @@ const revistaItems = useMemo(
             className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
               revistaView === 'actual'
                 ? 'bg-slate-800 text-white'
-                : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700'
             }`}
           >
             Revista actual
@@ -365,7 +391,7 @@ const revistaItems = useMemo(
             className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
               revistaView === 'historica'
                 ? 'bg-slate-800 text-white'
-                : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700'
             }`}
           >
             Revista histórica
@@ -373,12 +399,12 @@ const revistaItems = useMemo(
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-4">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
             Situación laboral
           </p>
-          <h3 className="text-xl font-bold text-slate-800">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
             {revistaView === 'actual' ? 'Revista actual' : 'Revista histórica'}
           </h3>
         </div>
@@ -444,22 +470,24 @@ const revistaItems = useMemo(
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-4">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
             Novedades
           </p>
-          <h3 className="text-xl font-bold text-slate-800">Accesos rápidos</h3>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+            Accesos rápidos
+          </h3>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <button
             type="button"
             onClick={onOpenAusentes}
-            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-slate-300 hover:bg-slate-100"
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
           >
-            <p className="text-sm font-semibold text-slate-800">Ausentes</p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Ausentes</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Total registrados: {agent.ausentes?.length ?? 0}
             </p>
           </button>
@@ -467,10 +495,10 @@ const revistaItems = useMemo(
           <button
             type="button"
             onClick={onOpenCapacitaciones}
-            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-slate-300 hover:bg-slate-100"
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
           >
-            <p className="text-sm font-semibold text-slate-800">Capacitaciones</p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Capacitaciones</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Total registradas: {agent.capacitaciones?.length ?? 0}
             </p>
           </button>
@@ -478,17 +506,17 @@ const revistaItems = useMemo(
           <button
             type="button"
             onClick={onOpenLicencias}
-            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-slate-300 hover:bg-slate-100"
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
           >
-            <p className="text-sm font-semibold text-slate-800">Licencias</p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Licencias</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Total registradas: {agent.licencias?.length ?? 0}
             </p>
           </button>
         </div>
       </section>
 
-      {isDesignacionOpen ? (
+      {canManageMovements && isDesignacionOpen ? (
         <AssignmentModal
           agentId={agent.id}
           agentName={agent.full_name}
@@ -498,7 +526,7 @@ const revistaItems = useMemo(
         />
       ) : null}
 
-      {isBajaOpen ? (
+      {canManageMovements && isBajaOpen ? (
         <AssignmentModal
           agentId={agent.id}
           agentName={agent.full_name}
