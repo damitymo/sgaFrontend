@@ -41,6 +41,9 @@ export type LoggedUser = {
   full_name: string;
   username: string;
   role: string;
+  agent_id?: number | null;
+  is_active?: boolean;
+  must_change_password?: boolean;
 };
 
 export function getUser(): LoggedUser | null {
@@ -51,7 +54,7 @@ export function getUser(): LoggedUser | null {
   if (!stored) return null;
 
   try {
-    return JSON.parse(stored);
+    return JSON.parse(stored) as LoggedUser;
   } catch {
     return null;
   }

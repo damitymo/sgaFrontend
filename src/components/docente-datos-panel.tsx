@@ -215,7 +215,7 @@ function RevistaTable({
         <tbody>
           {items.map((item, index) => (
             <tr
-              key={item.id ?? `${item.pof_position?.plaza_number}-${index}`}
+              key={item.id ?? `${item.pof_position?.plaza_number ?? 'row'}-${index}`}
               className="bg-white dark:bg-slate-900"
             >
               <td className="border border-slate-300 px-2 py-2 align-top print:px-1 print:py-1 dark:border-slate-700">
@@ -328,6 +328,58 @@ export function DocenteDatosPanel({
         </div>
       </section>
 
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden dark:border-slate-800 dark:bg-slate-900">
+        <div className="mb-4">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+            Novedades
+          </p>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+            Resumen de asistencias
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <button
+            type="button"
+            onClick={onOpenLicencias}
+            className="rounded-2xl border bg-slate-50 p-4 text-left transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
+          >
+            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Licencias
+            </p>
+            <p className="mt-2 text-3xl font-bold text-slate-800 dark:text-slate-100">
+              {agent.licencias?.length ?? 0}
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenAusentes}
+            className="rounded-2xl border bg-slate-50 p-4 text-left transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
+          >
+            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Ausentes
+            </p>
+            <p className="mt-2 text-3xl font-bold text-slate-800 dark:text-slate-100">
+              {agent.ausentes?.length ?? 0}
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenCapacitaciones}
+            className="rounded-2xl border bg-slate-50 p-4 text-left transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
+          >
+            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Capacitaciones
+            </p>
+            <p className="mt-2 text-3xl font-bold text-slate-800 dark:text-slate-100">
+              {agent.capacitaciones?.length ?? 0}
+            </p>
+          </button>
+        </div>
+      </section>
+
       {canManageMovements ? (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-4">
@@ -433,106 +485,59 @@ export function DocenteDatosPanel({
             </p>
           </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+          <div className="mt-3 grid grid-cols-2 gap-2">
             <div>
-              <span className="font-semibold">Apellidos y nombres:</span>{' '}
-              {fieldValue(agent.full_name)}
+              <span className="text-[10px] font-semibold">Docente:</span>{' '}
+              <span className="text-[10px]">{agent.full_name}</span>
             </div>
             <div>
-              <span className="font-semibold">DNI N°:</span>{' '}
-              {fieldValue(agent.dni)}
-            </div>
-            <div>
-              <span className="font-semibold">Legajo en junta:</span>{' '}
-              {fieldValue(agent.board_file_number)}
-            </div>
-            <div>
-              <span className="font-semibold">Legajo nivel secundario:</span>{' '}
-              {fieldValue(agent.secondary_board_number)}
+              <span className="text-[10px] font-semibold">DNI:</span>{' '}
+              <span className="text-[10px]">{agent.dni}</span>
             </div>
           </div>
         </div>
 
-        <section className="rounded-none border border-slate-400 bg-white p-0 shadow-none">
-          <div className="px-0 py-0">
+        <RevistaTable
+          items={revistaActual}
+          emptyText="No hay situación de revista actual registrada."
+        />
+
+        {revistaHistorica.length > 0 ? (
+          <div className="mt-4">
+            <h4 className="mb-2 text-[11px] font-bold uppercase">
+              Historial
+            </h4>
             <RevistaTable
-              items={revistaActual}
-              emptyText="No hay situación de revista actual registrada."
+              items={revistaHistorica}
+              emptyText="No hay situación de revista histórica registrada."
             />
           </div>
-        </section>
-
-        <div className="mt-4 grid grid-cols-4 gap-6 text-center text-[10px]">
-          <div className="border-t border-slate-500 pt-2">FIRMA DEL AGENTE</div>
-          <div className="border-t border-slate-500 pt-2">FIRMA DEL SECRETARIO</div>
-          <div className="border-t border-slate-500 pt-2">SELLO INSTITUCIÓN</div>
-          <div className="border-t border-slate-500 pt-2">FIRMA Y SELLO DEL RECTOR</div>
-        </div>
+        ) : null}
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden dark:border-slate-800 dark:bg-slate-900">
-        <div className="mb-4">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-            Novedades
-          </p>
-          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-            Accesos rápidos
-          </h3>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <button
-            type="button"
-            onClick={onOpenAusentes}
-            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
-          >
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Ausentes</p>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Total registrados: {agent.ausentes?.length ?? 0}
-            </p>
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenCapacitaciones}
-            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
-          >
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Capacitaciones</p>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Total registradas: {agent.capacitaciones?.length ?? 0}
-            </p>
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenLicencias}
-            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
-          >
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Licencias</p>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Total registradas: {agent.licencias?.length ?? 0}
-            </p>
-          </button>
-        </div>
-      </section>
-
-      {canManageMovements && isDesignacionOpen ? (
+      {isDesignacionOpen ? (
         <AssignmentModal
           agentId={agent.id}
           agentName={agent.full_name}
           movementType="DESIGNACION"
           onClose={() => setIsDesignacionOpen(false)}
-          onSuccess={onRefreshProfile}
+          onSuccess={async () => {
+            setIsDesignacionOpen(false);
+            await onRefreshProfile();
+          }}
         />
       ) : null}
 
-      {canManageMovements && isBajaOpen ? (
+      {isBajaOpen ? (
         <AssignmentModal
           agentId={agent.id}
           agentName={agent.full_name}
           movementType="BAJA"
           onClose={() => setIsBajaOpen(false)}
-          onSuccess={onRefreshProfile}
+          onSuccess={async () => {
+            setIsBajaOpen(false);
+            await onRefreshProfile();
+          }}
         />
       ) : null}
     </div>

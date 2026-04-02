@@ -13,7 +13,12 @@ type Props = {
 
 type FormState = {
   plaza_number: string;
-  legal_norm_type: '' | 'DECRETO' | 'RESOLUCION_MINISTERIAL' | 'DISPOSICION' | 'RI';
+  legal_norm_type:
+    | ''
+    | 'DECRETO'
+    | 'RESOLUCION_MINISTERIAL'
+    | 'DISPOSICION'
+    | 'RI';
   legal_norm_number: string;
   assignment_date: string;
   end_date: string;
@@ -65,7 +70,8 @@ function validateForm(
     form.end_date &&
     form.end_date < form.assignment_date
   ) {
-    errors.end_date = 'La fecha hasta no puede ser anterior a la fecha desde.';
+    errors.end_date =
+      'La fecha hasta no puede ser anterior a la fecha desde.';
   }
 
   if (!form.character_type) {
@@ -109,7 +115,10 @@ export function AssignmentModal({
     [movementType],
   );
 
-  const updateField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
+  const updateField = <K extends keyof FormState>(
+    field: K,
+    value: FormState[K],
+  ) => {
     setForm((prev) => ({
       ...prev,
       [field]: value,
@@ -149,11 +158,7 @@ export function AssignmentModal({
 
       let message = 'No se pudo guardar el movimiento.';
 
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'response' in error
-      ) {
+      if (typeof error === 'object' && error !== null && 'response' in error) {
         const err = error as {
           response?: {
             data?: {
@@ -179,20 +184,24 @@ export function AssignmentModal({
 
   return (
     <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/50 p-4 print:hidden">
-      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
               Movimientos
             </p>
-            <h3 className="text-2xl font-bold text-slate-800">{title}</h3>
-            <p className="mt-1 text-sm text-slate-600">{agentName}</p>
+            <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+              {title}
+            </h3>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              {agentName}
+            </p>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+            className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800"
           >
             Cerrar
           </button>
@@ -204,7 +213,7 @@ export function AssignmentModal({
               type="text"
               value={agentName}
               disabled
-              className="w-full rounded-2xl border border-slate-300 bg-slate-100 px-4 py-3 text-sm text-slate-600"
+              className="w-full rounded-2xl border border-slate-300 bg-slate-100 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
             />
           </FormField>
 
@@ -214,7 +223,7 @@ export function AssignmentModal({
               value={form.plaza_number}
               onChange={(e) => updateField('plaza_number', e.target.value)}
               placeholder="Ej: 1234"
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
           </FormField>
 
@@ -227,7 +236,7 @@ export function AssignmentModal({
                   e.target.value as FormState['character_type'],
                 )
               }
-              className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500"
+              className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             >
               <option value="">Seleccionar</option>
               <option value="TITULAR">Titular</option>
@@ -245,11 +254,13 @@ export function AssignmentModal({
                   e.target.value as FormState['legal_norm_type'],
                 )
               }
-              className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500"
+              className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             >
               <option value="">Seleccionar</option>
               <option value="DECRETO">Decreto</option>
-              <option value="RESOLUCION_MINISTERIAL">Resolución Ministerial</option>
+              <option value="RESOLUCION_MINISTERIAL">
+                Resolución Ministerial
+              </option>
               <option value="DISPOSICION">Disposición</option>
               <option value="RI">Resolución Interna (R.I.)</option>
             </select>
@@ -261,7 +272,7 @@ export function AssignmentModal({
               value={form.legal_norm_number}
               onChange={(e) => updateField('legal_norm_number', e.target.value)}
               placeholder="Ej: 123/26"
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
           </FormField>
 
@@ -270,7 +281,7 @@ export function AssignmentModal({
               type="date"
               value={form.assignment_date}
               onChange={(e) => updateField('assignment_date', e.target.value)}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
           </FormField>
 
@@ -280,12 +291,12 @@ export function AssignmentModal({
               value={form.end_date}
               onChange={(e) => updateField('end_date', e.target.value)}
               disabled={movementType !== 'BAJA'}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 disabled:bg-slate-100"
+              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-700"
             />
           </FormField>
 
           <FormField label="Resumen" full>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
               {legalNormLabel(form.legal_norm_type)}{' '}
               {form.legal_norm_number ? `Nº ${form.legal_norm_number}` : ''} |{' '}
               {form.character_type || '-'}
@@ -297,7 +308,7 @@ export function AssignmentModal({
               value={form.notes}
               onChange={(e) => updateField('notes', e.target.value)}
               rows={3}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
           </FormField>
         </div>
@@ -315,7 +326,7 @@ export function AssignmentModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
           >
             Cancelar
           </button>
@@ -338,7 +349,7 @@ function FormField({
 }) {
   return (
     <div className={full ? 'md:col-span-2' : ''}>
-      <label className="mb-2 block text-sm font-semibold text-slate-700">
+      <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
         {label}
       </label>
       {children}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { AppHeader } from '@/components/app-header';
@@ -65,6 +65,7 @@ type AgentProfile = {
   identity_card_number?: string | null;
   notes?: string | null;
   revista_actual?: RevistaItem[];
+  revista_historica?: RevistaItem[];
   licencias?: AttendanceItem[];
   ausentes?: AttendanceItem[];
   capacitaciones?: AttendanceItem[];
@@ -107,19 +108,6 @@ const emptyForm: AgentForm = {
   titles: '',
   identity_card_number: '',
 };
-
-function formatDate(date?: string | null) {
-  if (!date) return '-';
-
-  const safe = new Date(date);
-  if (Number.isNaN(safe.getTime())) return date;
-
-  return safe.toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
 
 function toInputDate(date?: string | null) {
   if (!date) return '';
@@ -207,17 +195,17 @@ export default function DocenteDetallePage() {
       }
     };
 
-    loadAuthUser();
+    void loadAuthUser();
   }, []);
 
   const canManageAgents =
     user?.role === 'ADMIN' || user?.role === 'ADMINISTRATIVO';
 
-  const loadFullProfile = async () => {
+  const loadFullProfile = useCallback(async () => {
     try {
       setLoading(true);
       setMessage('');
-      const response = await api.get(`/agents/${docenteId}/full-profile`);
+      const response = await api.get<AgentProfile>(`/agents/${docenteId}/full-profile`);
       setAgent(response.data);
     } catch (error) {
       console.error(error);
@@ -225,13 +213,13 @@ export default function DocenteDetallePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [docenteId]);
 
   useEffect(() => {
     if (!Number.isNaN(docenteId)) {
       void loadFullProfile();
     }
-  }, [docenteId]);
+  }, [docenteId, loadFullProfile]);
 
   const updateForm = (field: keyof AgentForm, value: string) => {
     setForm((prev) => {
@@ -352,10 +340,10 @@ export default function DocenteDetallePage() {
   if (loadingUser || loading) {
     return (
       <ProtectedPage>
-        <main className="min-h-screen bg-slate-100">
+        <main className="min-h-screen bg-slate-100 dark:bg-slate-950">
           <AppHeader />
           <section className="mx-auto max-w-7xl px-6 py-8">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
               Cargando ficha docente...
             </div>
           </section>
@@ -421,191 +409,37 @@ export default function DocenteDetallePage() {
           </div>
 
           {agent ? (
-            <>
-              <div className="hidden print:block">
-                <div className="mb-3 border-b border-slate-400 pb-2">
-                  <p className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-                    Escuela Técnica Valentín Virasoro
-                  </p>
-                  <h1 className="mt-1 text-center text-lg font-bold text-slate-800">
-                    Ficha Docente
-                  </h1>
-                </div>
-              </div>
-
-              <DocenteDatosPanel
-                agent={agent}
-                onOpenLicencias={() => setOpenLicencias(true)}
-                onOpenAusentes={() => setOpenAusentes(true)}
-                onOpenCapacitaciones={() => setOpenCapacitaciones(true)}
-                onRefreshProfile={loadFullProfile}
-              />
-            </>
+            <DocenteDatosPanel
+              agent={agent}
+              onOpenLicencias={() => setOpenLicencias(true)}
+              onOpenAusentes={() => setOpenAusentes(true)}
+              onOpenCapacitaciones={() => setOpenCapacitaciones(true)}
+              onRefreshProfile={loadFullProfile}
+            />
           ) : null}
 
           {openLicencias && agent ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:hidden">
-              <div className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                    Licencias
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setOpenLicencias(false)}
-                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-100"
-                  >
-                    Cerrar
-                  </button>
-                </div>
-
-                {agent.licencias && agent.licencias.length > 0 ? (
-                  <div className="space-y-3">
-                    {agent.licencias.map((item, index) => (
-                      <div
-                        key={item.id ?? index}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                      >
-                        <p>
-                          <span className="font-semibold">Desde:</span>{' '}
-                          {formatDate(item.start_date)}
-                        </p>
-                        <p>
-                          <span className="font-semibold">Hasta:</span>{' '}
-                          {formatDate(item.end_date)}
-                        </p>
-                        <p>
-                          <span className="font-semibold">Cantidad de días:</span>{' '}
-                          {item.quantity_days ?? '-'}
-                        </p>
-                        <p>
-                          <span className="font-semibold">Documento:</span>{' '}
-                          {item.document_number ?? '-'}
-                        </p>
-                        <p>
-                          <span className="font-semibold">Descripción:</span>{' '}
-                          {item.description ?? '-'}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
-                    No hay licencias registradas.
-                  </p>
-                )}
-              </div>
-            </div>
+            <AttendanceModal
+              title="Licencias"
+              items={agent.licencias}
+              onClose={() => setOpenLicencias(false)}
+            />
           ) : null}
 
           {openAusentes && agent ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:hidden">
-              <div className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                    Ausentes
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setOpenAusentes(false)}
-                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-100"
-                  >
-                    Cerrar
-                  </button>
-                </div>
-
-                {agent.ausentes && agent.ausentes.length > 0 ? (
-                  <div className="space-y-3">
-                    {agent.ausentes.map((item, index) => (
-                      <div
-                        key={item.id ?? index}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                      >
-                        <p>
-                          <span className="font-semibold">Desde:</span>{' '}
-                          {formatDate(item.start_date)}
-                        </p>
-                        <p>
-                          <span className="font-semibold">Hasta:</span>{' '}
-                          {formatDate(item.end_date)}
-                        </p>
-                        <p>
-                          <span className="font-semibold">Cantidad de días:</span>{' '}
-                          {item.quantity_days ?? '-'}
-                        </p>
-                        <p>
-                          <span className="font-semibold">Documento:</span>{' '}
-                          {item.document_number ?? '-'}
-                        </p>
-                        <p>
-                          <span className="font-semibold">Descripción:</span>{' '}
-                          {item.description ?? '-'}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
-                    No hay ausentes registrados.
-                  </p>
-                )}
-              </div>
-            </div>
+            <AttendanceModal
+              title="Ausentes"
+              items={agent.ausentes}
+              onClose={() => setOpenAusentes(false)}
+            />
           ) : null}
 
           {openCapacitaciones && agent ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:hidden">
-              <div className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-                    Capacitaciones
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setOpenCapacitaciones(false)}
-                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-100"
-                  >
-                    Cerrar
-                  </button>
-                </div>
-
-                {agent.capacitaciones && agent.capacitaciones.length > 0 ? (
-                  <div className="space-y-3">
-                    {agent.capacitaciones.map((item, index) => (
-                      <div
-                        key={item.id ?? index}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                      >
-                        <p>
-                          <span className="font-semibold">Desde:</span>{' '}
-                          {formatDate(item.start_date)}
-                        </p>
-                        <p>
-                          <span className="font-semibold">Hasta:</span>{' '}
-                          {formatDate(item.end_date)}
-                        </p>
-                        <p>
-                          <span className="font-semibold">Cantidad de días:</span>{' '}
-                          {item.quantity_days ?? '-'}
-                        </p>
-                        <p>
-                          <span className="font-semibold">Documento:</span>{' '}
-                          {item.document_number ?? '-'}
-                        </p>
-                        <p>
-                          <span className="font-semibold">Descripción:</span>{' '}
-                          {item.description ?? '-'}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
-                    No hay capacitaciones registradas.
-                  </p>
-                )}
-              </div>
-            </div>
+            <AttendanceModal
+              title="Capacitaciones"
+              items={agent.capacitaciones}
+              onClose={() => setOpenCapacitaciones(false)}
+            />
           ) : null}
 
           {isEditOpen ? (
@@ -667,15 +501,6 @@ export default function DocenteDetallePage() {
                     />
                   </FormField>
 
-                  <FormField label="Email" error={formErrors.email}>
-                    <input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => updateForm('email', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                    />
-                  </FormField>
-
                   <FormField label="Domicilio">
                     <input
                       type="text"
@@ -699,6 +524,15 @@ export default function DocenteDetallePage() {
                       type="text"
                       value={form.mobile}
                       onChange={(e) => updateForm('mobile', e.target.value)}
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    />
+                  </FormField>
+
+                  <FormField label="Email" error={formErrors.email}>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => updateForm('email', e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
@@ -758,17 +592,17 @@ export default function DocenteDetallePage() {
                     />
                   </FormField>
 
-                  <FormField label="Título que posee" full>
+                  <FormField label="Títulos" full>
                     <textarea
                       value={form.titles}
                       onChange={(e) => updateForm('titles', e.target.value)}
-                      rows={3}
+                      rows={4}
                       className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
                 </div>
 
-                <div className="mt-6 flex gap-3">
+                <div className="mt-6 flex flex-wrap gap-3">
                   <button
                     type="button"
                     onClick={handleUpdate}
@@ -795,16 +629,90 @@ export default function DocenteDetallePage() {
   );
 }
 
+function AttendanceModal({
+  title,
+  items,
+  onClose,
+}: {
+  title: string;
+  items?: AttendanceItem[];
+  onClose: () => void;
+}) {
+  const formatDate = (date?: string | null) => {
+    if (!date) return '-';
+
+    const safe = new Date(date);
+    if (Number.isNaN(safe.getTime())) return date;
+
+    return safe.toLocaleDateString('es-AR');
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:hidden">
+      <div className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+            {title}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-100"
+          >
+            Cerrar
+          </button>
+        </div>
+
+        {items && items.length > 0 ? (
+          <div className="space-y-3">
+            {items.map((item, index) => (
+              <div
+                key={item.id ?? index}
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              >
+                <p>
+                  <span className="font-semibold">Desde:</span>{' '}
+                  {formatDate(item.start_date)}
+                </p>
+                <p>
+                  <span className="font-semibold">Hasta:</span>{' '}
+                  {formatDate(item.end_date)}
+                </p>
+                <p>
+                  <span className="font-semibold">Cantidad de días:</span>{' '}
+                  {item.quantity_days ?? '-'}
+                </p>
+                <p>
+                  <span className="font-semibold">Documento:</span>{' '}
+                  {item.document_number ?? '-'}
+                </p>
+                <p>
+                  <span className="font-semibold">Descripción:</span>{' '}
+                  {item.description ?? '-'}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            No hay registros.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function FormField({
   label,
   children,
-  full = false,
   error,
+  full = false,
 }: {
   label: string;
   children: React.ReactNode;
-  full?: boolean;
   error?: string;
+  full?: boolean;
 }) {
   return (
     <div className={full ? 'md:col-span-2' : ''}>
@@ -812,7 +720,9 @@ function FormField({
         {label}
       </label>
       {children}
-      {error ? <p className="mt-1 text-xs text-red-600">{error}</p> : null}
+      {error ? (
+        <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+      ) : null}
     </div>
   );
 }

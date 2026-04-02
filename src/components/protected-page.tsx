@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
+import { redirect } from 'next/navigation';
+import { getUser } from '@/lib/auth';
 
 type Props = {
   children: React.ReactNode;
@@ -9,36 +10,39 @@ type Props = {
 };
 
 export function ProtectedPage({ children, allowedRoles }: Props) {
-  const router = useRouter();
-  const ranRef = useRef(false);
-
-  useEffect(() => {
-    if (ranRef.current) return;
-    ranRef.current = true;
+  const isAuthorized = useMemo(() => {
+    if (typeof window === 'undefined') return null;
 
     const token = localStorage.getItem('token');
-    const userRaw = localStorage.getItem('user');
+    const user = getUser();
 
-    if (!token || !userRaw) {
-      router.replace('/login');
-      return;
+    if (!token || !user) {
+      return false;
     }
 
-    try {
-      const user = JSON.parse(userRaw) as { role?: string };
+    if (allowedRoles && (!user.role || !allowedRoles.includes(user.role))) {
+      return false;
+    }
 
-      if (allowedRoles && (!user.role || !allowedRoles.includes(user.role))) {
-        router.replace('/');
+    return true;
+  }, [allowedRoles]);
+
+  if (isAuthorized === null) return null;
+
+  if (!isAuthorized) {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      const user = getUser();
+
+      if (!token || !user) {
+        window.location.replace('/login');
+      } else {
+        window.location.replace('/');
       }
-    } catch {
-      router.replace('/login');
     }
-  }, [router, allowedRoles]);
 
-  const token =
-    typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-  if (!token) return null;
+    return null;
+  }
 
   return <>{children}</>;
 }
