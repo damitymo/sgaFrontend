@@ -191,7 +191,7 @@ export default function HomePage() {
             </h2>
             <p className="mt-3 max-w-3xl text-slate-600 dark:text-slate-300">
               {isAgentUser
-                ? 'Accedé a tu ficha, consultá tu situación de revista y visualizá tus estadísticas personales.'
+                ? 'Accedé a tu ficha,  consultá tu situación de revista y visualizá tus estadísticas personales.'
                 : 'Plataforma institucional para la gestión administrativa escolar de agentes, POF, asistencias, designaciones, bajas y situación de revista.'}
             </p>
           </div>
