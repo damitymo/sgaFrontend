@@ -9,12 +9,18 @@ import { canManageSystem } from '@/lib/auth';
 type AttendanceItem = {
   id: number;
   agent_id: number;
-  record_type: string;
-  start_date?: string | null;
-  end_date?: string | null;
-  quantity_days?: number | null;
-  description?: string | null;
-  document_number?: string | null;
+  attendance_date: string;
+  year: number;
+  month: number;
+  day: number;
+  status: 'PRESENTE' | 'AUSENTE_INJUSTIFICADO' | 'LICENCIA';
+  raw_code?: string | null;
+  condition_type?: string | null;
+  shift?: string | null;
+  source_sheet_name?: string | null;
+  source_agent_name?: string | null;
+  source_dni?: string | null;
+  observation?: string | null;
 };
 
 type AgentBasic = {
@@ -24,27 +30,31 @@ type AgentBasic = {
 };
 
 type AttendanceForm = {
-  record_type:
-    | 'LICENCIA'
-    | 'AUSENTE'
-    | 'CAPACITACION'
-    | 'CONSTANCIA'
-    | 'PARO';
-  start_date: string;
-  end_date: string;
-  quantity_days: string;
-  description: string;
-  document_number: string;
+  attendance_date: string;
+  status: 'PRESENTE' | 'AUSENTE_INJUSTIFICADO' | 'LICENCIA';
+  raw_code: string;
+  condition_type: string;
+  shift: string;
+  source_sheet_name: string;
+  observation: string;
 };
 
 const initialForm: AttendanceForm = {
-  record_type: 'LICENCIA',
-  start_date: '',
-  end_date: '',
-  quantity_days: '',
-  description: '',
-  document_number: '',
+  attendance_date: '',
+  status: 'LICENCIA',
+  raw_code: '',
+  condition_type: '',
+  shift: '',
+  source_sheet_name: '',
+  observation: '',
 };
+
+function formatDate(date?: string | null) {
+  if (!date) return '-';
+  const safe = new Date(date);
+  if (Number.isNaN(safe.getTime())) return date;
+  return safe.toLocaleDateString('es-AR');
+}
 
 export default function AsistenciaPage() {
   const [dni, setDni] = useState('');
@@ -67,12 +77,7 @@ export default function AsistenciaPage() {
       setAgent(null);
       setRecords([]);
 
-      const byDni = await api.get(`/agents/dni/${dni}`);
-
-      if (!byDni.data) {
-        setMessage('No se encontró ningún docente con ese DNI.');
-        return;
-      }
+      const byDni = await api.get(`/agents/dni/${dni.trim()}`);
 
       const foundAgent: AgentBasic = {
         id: byDni.data.id,
@@ -101,18 +106,26 @@ export default function AsistenciaPage() {
       return;
     }
 
+    if (!form.attendance_date) {
+      setMessage('La fecha es obligatoria.');
+      return;
+    }
+
     try {
       setSaving(true);
       setMessage('');
 
       await api.post('/attendance', {
         agent_id: agent.id,
-        record_type: form.record_type,
-        start_date: form.start_date || undefined,
-        end_date: form.end_date || undefined,
-        quantity_days: form.quantity_days ? Number(form.quantity_days) : undefined,
-        description: form.description || undefined,
-        document_number: form.document_number || undefined,
+        attendance_date: form.attendance_date,
+        status: form.status,
+        raw_code: form.raw_code || undefined,
+        condition_type: form.condition_type || undefined,
+        shift: form.shift || undefined,
+        source_sheet_name: form.source_sheet_name || `MANUAL-${agent.dni}`,
+        source_agent_name: agent.full_name,
+        source_dni: agent.dni,
+        observation: form.observation || undefined,
       });
 
       await loadAttendance(agent.id);
@@ -126,21 +139,19 @@ export default function AsistenciaPage() {
     }
   };
 
-  
-    return (
-  <ProtectedPage allowedRoles={['ADMIN', 'ADMINISTRATIVO']}>
+  return (
+    <ProtectedPage allowedRoles={['ADMIN', 'ADMINISTRATIVO']}>
       <main className="min-h-screen bg-slate-100">
         <AppHeader />
 
-        <section className="mx-auto max-w-7xl px-6 py-8 space-y-6">
+        <section className="mx-auto max-w-7xl space-y-6 px-6 py-8">
           <div className="rounded-3xl border bg-white p-6 shadow-sm">
             <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
               Módulo
             </p>
             <h2 className="text-3xl font-bold text-slate-800">Asistencia</h2>
             <p className="mt-2 text-slate-600">
-              Registro de licencias, ausentes, capacitaciones, constancias y
-              paros.
+              Registro de presentes, ausentes injustificados y licencias.
             </p>
           </div>
 
@@ -176,7 +187,7 @@ export default function AsistenciaPage() {
               {canManageSystem() && (
                 <div className="rounded-3xl border bg-white p-6 shadow-sm space-y-4">
                   <h3 className="text-2xl font-bold text-slate-800">
-                    Cargar registro administrativo
+                    Cargar registro de asistencia
                   </h3>
 
                   <div className="rounded-2xl border bg-slate-50 p-4">
@@ -192,85 +203,105 @@ export default function AsistenciaPage() {
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
                       <label className="mb-1 block text-sm font-medium text-slate-700">
-                        Tipo de registro
+                        Fecha
+                      </label>
+                      <input
+                        type="date"
+                        value={form.attendance_date}
+                        onChange={(e) =>
+                          handleChange('attendance_date', e.target.value)
+                        }
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-slate-700">
+                        Estado
                       </label>
                       <select
-                        value={form.record_type}
+                        value={form.status}
                         onChange={(e) =>
                           handleChange(
-                            'record_type',
-                            e.target.value as AttendanceForm['record_type'],
+                            'status',
+                            e.target.value as AttendanceForm['status'],
                           )
                         }
                         className="w-full rounded-xl border border-slate-300 px-3 py-2"
                       >
+                        <option value="PRESENTE">PRESENTE</option>
+                        <option value="AUSENTE_INJUSTIFICADO">
+                          AUSENTE INJUSTIFICADO
+                        </option>
                         <option value="LICENCIA">LICENCIA</option>
-                        <option value="AUSENTE">AUSENTE</option>
-                        <option value="CAPACITACION">CAPACITACIÓN</option>
-                        <option value="CONSTANCIA">CONSTANCIA</option>
-                        <option value="PARO">PARO</option>
                       </select>
                     </div>
 
                     <div>
                       <label className="mb-1 block text-sm font-medium text-slate-700">
-                        Cantidad de días
-                      </label>
-                      <input
-                        type="number"
-                        value={form.quantity_days}
-                        onChange={(e) =>
-                          handleChange('quantity_days', e.target.value)
-                        }
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-1 block text-sm font-medium text-slate-700">
-                        Fecha desde
-                      </label>
-                      <input
-                        type="date"
-                        value={form.start_date}
-                        onChange={(e) => handleChange('start_date', e.target.value)}
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-1 block text-sm font-medium text-slate-700">
-                        Fecha hasta
-                      </label>
-                      <input
-                        type="date"
-                        value={form.end_date}
-                        onChange={(e) => handleChange('end_date', e.target.value)}
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-1 block text-sm font-medium text-slate-700">
-                        Documento / constancia
+                        Código crudo
                       </label>
                       <input
                         type="text"
-                        value={form.document_number}
+                        value={form.raw_code}
+                        onChange={(e) => handleChange('raw_code', e.target.value)}
+                        placeholder="Ej: P, IJ, L1"
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-slate-700">
+                        Carácter
+                      </label>
+                      <input
+                        type="text"
+                        value={form.condition_type}
                         onChange={(e) =>
-                          handleChange('document_number', e.target.value)
+                          handleChange('condition_type', e.target.value)
                         }
+                        placeholder="TITULAR / INTERINO / SUPLENTE"
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-slate-700">
+                        Turno
+                      </label>
+                      <input
+                        type="text"
+                        value={form.shift}
+                        onChange={(e) => handleChange('shift', e.target.value)}
+                        placeholder="MANANA / TARDE / NOCHE"
+                        className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-slate-700">
+                        Hoja origen
+                      </label>
+                      <input
+                        type="text"
+                        value={form.source_sheet_name}
+                        onChange={(e) =>
+                          handleChange('source_sheet_name', e.target.value)
+                        }
+                        placeholder="Ej: PEREZ JUAN TITULAR TM"
                         className="w-full rounded-xl border border-slate-300 px-3 py-2"
                       />
                     </div>
 
                     <div className="md:col-span-2">
                       <label className="mb-1 block text-sm font-medium text-slate-700">
-                        Descripción
+                        Observación
                       </label>
                       <textarea
-                        value={form.description}
-                        onChange={(e) => handleChange('description', e.target.value)}
+                        value={form.observation}
+                        onChange={(e) =>
+                          handleChange('observation', e.target.value)
+                        }
                         rows={3}
                         className="w-full rounded-xl border border-slate-300 px-3 py-2"
                       />
@@ -291,71 +322,63 @@ export default function AsistenciaPage() {
 
               <div className="rounded-3xl border bg-white p-6 shadow-sm space-y-4">
                 <h3 className="text-2xl font-bold text-slate-800">
-                  Historial del docente
+                  Historial de asistencia
                 </h3>
 
                 <div className="rounded-2xl border bg-slate-50 p-4">
-                  <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                    Docente
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-slate-800">
+                  <p className="text-sm text-slate-600">
+                    <span className="font-semibold text-slate-800">Docente:</span>{' '}
                     {agent.full_name}
                   </p>
-                  <p className="text-slate-600">DNI: {agent.dni}</p>
+                  <p className="text-sm text-slate-600">
+                    <span className="font-semibold text-slate-800">DNI:</span>{' '}
+                    {agent.dni}
+                  </p>
                 </div>
 
-                {records.length > 0 ? (
-                  <div className="space-y-3">
-                    {records.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-2xl border bg-slate-50 p-4"
-                      >
-                        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-                          <p>
-                            <span className="font-semibold text-slate-700">
-                              Tipo:
-                            </span>{' '}
-                            {item.record_type}
-                          </p>
-                          <p>
-                            <span className="font-semibold text-slate-700">
-                              Desde:
-                            </span>{' '}
-                            {item.start_date || '-'}
-                          </p>
-                          <p>
-                            <span className="font-semibold text-slate-700">
-                              Hasta:
-                            </span>{' '}
-                            {item.end_date || '-'}
-                          </p>
-                          <p>
-                            <span className="font-semibold text-slate-700">
-                              Días:
-                            </span>{' '}
-                            {item.quantity_days ?? '-'}
-                          </p>
-                          <p>
-                            <span className="font-semibold text-slate-700">
-                              Documento:
-                            </span>{' '}
-                            {item.document_number || '-'}
-                          </p>
-                          <p className="md:col-span-3">
-                            <span className="font-semibold text-slate-700">
-                              Descripción:
-                            </span>{' '}
-                            {item.description || '-'}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                {!records.length ? (
+                  <p className="text-slate-600">No hay registros cargados.</p>
                 ) : (
-                  <p className="text-slate-600">
-                    No hay registros administrativos cargados para este docente.
-                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse">
+                      <thead>
+                        <tr className="bg-slate-100">
+                          <th className="border px-3 py-2 text-left">Fecha</th>
+                          <th className="border px-3 py-2 text-left">Estado</th>
+                          <th className="border px-3 py-2 text-left">Código</th>
+                          <th className="border px-3 py-2 text-left">Carácter</th>
+                          <th className="border px-3 py-2 text-left">Turno</th>
+                          <th className="border px-3 py-2 text-left">Hoja origen</th>
+                          <th className="border px-3 py-2 text-left">Observación</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {records.map((item) => (
+                          <tr key={item.id}>
+                            <td className="border px-3 py-2">
+                              {formatDate(item.attendance_date)}
+                            </td>
+                            <td className="border px-3 py-2">{item.status}</td>
+                            <td className="border px-3 py-2">
+                              {item.raw_code || '-'}
+                            </td>
+                            <td className="border px-3 py-2">
+                              {item.condition_type || '-'}
+                            </td>
+                            <td className="border px-3 py-2">
+                              {item.shift || '-'}
+                            </td>
+                            <td className="border px-3 py-2">
+                              {item.source_sheet_name || '-'}
+                            </td>
+                            <td className="border px-3 py-2">
+                              {item.observation || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             </>

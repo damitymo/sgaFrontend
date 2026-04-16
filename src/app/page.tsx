@@ -19,12 +19,13 @@ type AgentItem = {
 type AttendanceItem = {
   id: number;
   agent_id: number;
-  record_type: 'LICENCIA' | 'AUSENTE' | 'CAPACITACION' | 'CONSTANCIA' | 'PARO';
-  start_date?: string | null;
-  end_date?: string | null;
-  quantity_days?: number | null;
-  description?: string | null;
-  document_number?: string | null;
+  attendance_date: string;
+  status: 'PRESENTE' | 'AUSENTE_INJUSTIFICADO' | 'LICENCIA';
+  raw_code?: string | null;
+  condition_type?: string | null;
+  shift?: string | null;
+  source_sheet_name?: string | null;
+  observation?: string | null;
 };
 
 type BirthdayItem = {
@@ -36,20 +37,16 @@ type BirthdayItem = {
 };
 
 type AttendanceStats = {
-  total: number;
+  total_records: number;
   counts: {
+    PRESENTE: number;
+    AUSENTE_INJUSTIFICADO: number;
     LICENCIA: number;
-    AUSENTE: number;
-    CAPACITACION: number;
-    CONSTANCIA: number;
-    PARO: number;
   };
   percentages: {
+    PRESENTE: number;
+    AUSENTE_INJUSTIFICADO: number;
     LICENCIA: number;
-    AUSENTE: number;
-    CAPACITACION: number;
-    CONSTANCIA: number;
-    PARO: number;
   };
 };
 
@@ -83,32 +80,28 @@ function getMonthName(month: number) {
 
 function buildInstitutionalStats(attendance: AttendanceItem[]): AttendanceStats {
   const counts = {
+    PRESENTE: 0,
+    AUSENTE_INJUSTIFICADO: 0,
     LICENCIA: 0,
-    AUSENTE: 0,
-    CAPACITACION: 0,
-    CONSTANCIA: 0,
-    PARO: 0,
   };
 
   for (const item of attendance) {
-    if (item.record_type in counts) {
-      counts[item.record_type as keyof typeof counts] += 1;
-    }
+    if (item.status === 'PRESENTE') counts.PRESENTE += 1;
+    if (item.status === 'AUSENTE_INJUSTIFICADO') counts.AUSENTE_INJUSTIFICADO += 1;
+    if (item.status === 'LICENCIA') counts.LICENCIA += 1;
   }
 
-  const total = attendance.length;
+  const total_records = attendance.length;
   const calc = (value: number) =>
-    total > 0 ? Number(((value / total) * 100).toFixed(1)) : 0;
+    total_records > 0 ? Number(((value / total_records) * 100).toFixed(1)) : 0;
 
   return {
-    total,
+    total_records,
     counts,
     percentages: {
+      PRESENTE: calc(counts.PRESENTE),
+      AUSENTE_INJUSTIFICADO: calc(counts.AUSENTE_INJUSTIFICADO),
       LICENCIA: calc(counts.LICENCIA),
-      AUSENTE: calc(counts.AUSENTE),
-      CAPACITACION: calc(counts.CAPACITACION),
-      CONSTANCIA: calc(counts.CONSTANCIA),
-      PARO: calc(counts.PARO),
     },
   };
 }
@@ -140,21 +133,26 @@ export default function HomePage() {
           ]);
 
           setAgentStats(statsResponse.data);
-          setBirthdaysThisMonth((birthdaysResponse.data ?? []).sort((a, b) => a.day - b.day));
+          setBirthdaysThisMonth(
+            (birthdaysResponse.data ?? []).sort((a, b) => a.day - b.day),
+          );
           setAgents([]);
           setAttendance([]);
           return;
         }
 
-        const [agentsResponse, attendanceResponse, birthdaysResponse] = await Promise.all([
-          api.get<AgentItem[]>('/agents'),
-          api.get<AttendanceItem[]>('/attendance'),
-          api.get<BirthdayItem[]>('/agents/birthdays/month'),
-        ]);
+        const [agentsResponse, attendanceResponse, birthdaysResponse] =
+          await Promise.all([
+            api.get<AgentItem[]>('/agents'),
+            api.get<AttendanceItem[]>('/attendance'),
+            api.get<BirthdayItem[]>('/agents/birthdays/month'),
+          ]);
 
         setAgents((agentsResponse.data ?? []) as AgentItem[]);
         setAttendance((attendanceResponse.data ?? []) as AttendanceItem[]);
-        setBirthdaysThisMonth((birthdaysResponse.data ?? []).sort((a, b) => a.day - b.day));
+        setBirthdaysThisMonth(
+          (birthdaysResponse.data ?? []).sort((a, b) => a.day - b.day),
+        );
         setAgentStats(null);
       } catch (error) {
         console.error(error);
@@ -191,14 +189,16 @@ export default function HomePage() {
             </h2>
             <p className="mt-3 max-w-3xl text-slate-600 dark:text-slate-300">
               {isAgentUser
-                ? 'Accedé a tu ficha,  consultá tu situación de revista y visualizá tus estadísticas personales.'
+                ? 'Accedé a tu ficha, consultá tu situación de revista y visualizá tus estadísticas personales.'
                 : 'Plataforma institucional para la gestión administrativa escolar de agentes, POF, asistencias, designaciones, bajas y situación de revista.'}
             </p>
           </div>
 
           {loading ? (
             <div className="rounded-3xl border bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <p className="text-slate-600 dark:text-slate-300">Cargando panel...</p>
+              <p className="text-slate-600 dark:text-slate-300">
+                Cargando panel...
+              </p>
             </div>
           ) : null}
 
@@ -255,7 +255,7 @@ export default function HomePage() {
                         Asistencia
                       </h3>
                       <p className="mt-3 text-slate-600 dark:text-slate-300">
-                        Registro de licencias, ausentes, capacitaciones, constancias y demás novedades administrativas.
+                        Registro de presentes, ausentes injustificados y licencias.
                       </p>
                     </Link>
                   </div>
@@ -265,7 +265,7 @@ export default function HomePage() {
                       title="Estadísticas institucionales"
                       subtitle="Indicadores generales"
                       totalLabel="Total novedades"
-                      totalValue={visibleStats?.total ?? 0}
+                      totalValue={visibleStats?.total_records ?? 0}
                       extraLabel="Docentes activos"
                       extraValue={agents.length}
                       stats={visibleStats}
@@ -331,7 +331,7 @@ export default function HomePage() {
                     title="Mis estadísticas"
                     subtitle="Resumen personal"
                     totalLabel="Total novedades"
-                    totalValue={visibleStats?.total ?? 0}
+                    totalValue={visibleStats?.total_records ?? 0}
                     stats={visibleStats}
                   />
 
@@ -369,20 +369,16 @@ function StatsCard({
   stats: AttendanceStats | null;
 }) {
   const safeStats = stats ?? {
-    total: 0,
+    total_records: 0,
     counts: {
+      PRESENTE: 0,
+      AUSENTE_INJUSTIFICADO: 0,
       LICENCIA: 0,
-      AUSENTE: 0,
-      CAPACITACION: 0,
-      CONSTANCIA: 0,
-      PARO: 0,
     },
     percentages: {
+      PRESENTE: 0,
+      AUSENTE_INJUSTIFICADO: 0,
       LICENCIA: 0,
-      AUSENTE: 0,
-      CAPACITACION: 0,
-      CONSTANCIA: 0,
-      PARO: 0,
     },
   };
 
@@ -409,26 +405,18 @@ function StatsCard({
           value={safeStats.counts.LICENCIA}
           percent={safeStats.percentages.LICENCIA}
         />
+
         <MetricPercentBox
-          label="Ausentes"
-          value={safeStats.counts.AUSENTE}
-          percent={safeStats.percentages.AUSENTE}
+          label="Ausentes injustificados"
+          value={safeStats.counts.AUSENTE_INJUSTIFICADO}
+          percent={safeStats.percentages.AUSENTE_INJUSTIFICADO}
         />
-        <MetricPercentBox
-          label="Capacitaciones"
-          value={safeStats.counts.CAPACITACION}
-          percent={safeStats.percentages.CAPACITACION}
-        />
-        <MetricPercentBox
-          label="Constancias"
-          value={safeStats.counts.CONSTANCIA}
-          percent={safeStats.percentages.CONSTANCIA}
-        />
+
         <div className="md:col-span-2">
           <MetricPercentBox
-            label="Paros"
-            value={safeStats.counts.PARO}
-            percent={safeStats.percentages.PARO}
+            label="Presentes"
+            value={safeStats.counts.PRESENTE}
+            percent={safeStats.percentages.PRESENTE}
           />
         </div>
       </div>
@@ -466,7 +454,9 @@ function MetricPercentBox({
 }) {
   return (
     <div className="rounded-2xl border bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
-      <p className="font-semibold text-slate-800 dark:text-slate-100">{label}</p>
+      <p className="font-semibold text-slate-800 dark:text-slate-100">
+        {label}
+      </p>
       <p className="mt-2 text-2xl font-bold text-slate-700 dark:text-slate-200">
         {value}
       </p>

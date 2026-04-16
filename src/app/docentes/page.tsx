@@ -720,12 +720,11 @@ export default function DocentesPage() {
                     </div>
                   ) : selectedAgent ? (
                     <DocenteDatosPanel
-                      agent={selectedAgent}
-                      onOpenLicencias={() => setOpenLicencias(true)}
-                      onOpenAusentes={() => setOpenAusentes(true)}
-                      onOpenCapacitaciones={() => setOpenCapacitaciones(true)}
-                      onRefreshProfile={() => loadFullProfile(selectedAgent.id)}
-                    />
+  agent={selectedAgent}
+  onOpenLicencias={() => setOpenLicencias(true)}
+  onOpenAusentes={() => setOpenAusentes(true)}
+  onRefreshProfile={() => loadFullProfile(selectedAgent.id)}
+/>
                   ) : (
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 print:border-none print:bg-white">
                       No se pudo cargar la ficha docente.

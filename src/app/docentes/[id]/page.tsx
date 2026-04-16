@@ -5,7 +5,11 @@ import { useParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { AppHeader } from '@/components/app-header';
 import { ProtectedPage } from '@/components/protected-page';
-import { DocenteDatosPanel } from '@/components/docente-datos-panel';
+import {
+  DocenteDatosPanel,
+  type AgentProfile,
+  type AttendanceItem,
+} from '@/components/docente-datos-panel';
 
 type AuthUser = {
   id: number;
@@ -15,60 +19,6 @@ type AuthUser = {
   role: string;
   is_active: boolean;
   agent_id?: number | null;
-};
-
-type RevistaItem = {
-  id?: number;
-  revista_type?: string;
-  character_type?: string;
-  start_date?: string | null;
-  end_date?: string | null;
-  legal_norm?: string | null;
-  resolution_number?: string | null;
-  notes?: string | null;
-  pof_position?: {
-    plaza_number?: string | null;
-    subject_name?: string | null;
-    hours_count?: number | null;
-    course?: string | null;
-    division?: string | null;
-    shift?: string | null;
-  } | null;
-};
-
-type AttendanceItem = {
-  id?: number;
-  start_date?: string | null;
-  end_date?: string | null;
-  quantity_days?: number | null;
-  description?: string | null;
-  document_number?: string | null;
-};
-
-type AgentProfile = {
-  id: number;
-  last_name?: string | null;
-  first_name?: string | null;
-  full_name: string;
-  dni: string;
-  birth_date?: string | null;
-  address?: string | null;
-  phone?: string | null;
-  mobile?: string | null;
-  email?: string | null;
-  teaching_file_number?: string | null;
-  board_file_number?: string | null;
-  secondary_board_number?: string | null;
-  school_entry_date?: string | null;
-  teaching_entry_date?: string | null;
-  titles?: string | null;
-  identity_card_number?: string | null;
-  notes?: string | null;
-  revista_actual?: RevistaItem[];
-  revista_historica?: RevistaItem[];
-  licencias?: AttendanceItem[];
-  ausentes?: AttendanceItem[];
-  capacitaciones?: AttendanceItem[];
 };
 
 type AgentForm = {
@@ -154,6 +104,113 @@ function validateAgentForm(form: AgentForm): AgentFormErrors {
   return errors;
 }
 
+function formatAttendanceDate(date?: string | null) {
+  if (!date) return '-';
+  const safe = new Date(date);
+  if (Number.isNaN(safe.getTime())) return date;
+  return safe.toLocaleDateString('es-AR');
+}
+
+function AttendanceModal({
+  title,
+  items,
+  onClose,
+}: {
+  title: string;
+  items?: AttendanceItem[];
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:hidden">
+      <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+        <div className="mb-5 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              Novedades
+            </p>
+            <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+              {title}
+            </h3>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-100"
+          >
+            Cerrar
+          </button>
+        </div>
+
+        {!items?.length ? (
+          <p className="text-slate-600 dark:text-slate-300">
+            No hay registros cargados.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-slate-100 dark:bg-slate-800">
+                  <th className="border px-3 py-2 text-left">Fecha</th>
+                  <th className="border px-3 py-2 text-left">Estado</th>
+                  <th className="border px-3 py-2 text-left">Código</th>
+                  <th className="border px-3 py-2 text-left">Carácter</th>
+                  <th className="border px-3 py-2 text-left">Turno</th>
+                  <th className="border px-3 py-2 text-left">Hoja origen</th>
+                  <th className="border px-3 py-2 text-left">Observación</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, index) => (
+                  <tr key={item.id ?? index}>
+                    <td className="border px-3 py-2">
+                      {formatAttendanceDate(item.attendance_date)}
+                    </td>
+                    <td className="border px-3 py-2">{item.status || '-'}</td>
+                    <td className="border px-3 py-2">{item.raw_code || '-'}</td>
+                    <td className="border px-3 py-2">
+                      {item.condition_type || '-'}
+                    </td>
+                    <td className="border px-3 py-2">{item.shift || '-'}</td>
+                    <td className="border px-3 py-2">
+                      {item.source_sheet_name || '-'}
+                    </td>
+                    <td className="border px-3 py-2">
+                      {item.observation || '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FormField({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
+        {label}
+      </label>
+      {children}
+      {error ? (
+        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>
+      ) : null}
+    </div>
+  );
+}
+
 export default function DocenteDetallePage() {
   const params = useParams<{ id: string }>();
   const docenteId = Number(params.id);
@@ -166,7 +223,6 @@ export default function DocenteDetallePage() {
 
   const [openLicencias, setOpenLicencias] = useState(false);
   const [openAusentes, setOpenAusentes] = useState(false);
-  const [openCapacitaciones, setOpenCapacitaciones] = useState(false);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [savingForm, setSavingForm] = useState(false);
@@ -205,7 +261,9 @@ export default function DocenteDetallePage() {
     try {
       setLoading(true);
       setMessage('');
-      const response = await api.get<AgentProfile>(`/agents/${docenteId}/full-profile`);
+      const response = await api.get<AgentProfile>(
+        `/agents/${docenteId}/full-profile`,
+      );
       setAgent(response.data);
     } catch (error) {
       console.error(error);
@@ -413,7 +471,6 @@ export default function DocenteDetallePage() {
               agent={agent}
               onOpenLicencias={() => setOpenLicencias(true)}
               onOpenAusentes={() => setOpenAusentes(true)}
-              onOpenCapacitaciones={() => setOpenCapacitaciones(true)}
               onRefreshProfile={loadFullProfile}
             />
           ) : null}
@@ -428,17 +485,9 @@ export default function DocenteDetallePage() {
 
           {openAusentes && agent ? (
             <AttendanceModal
-              title="Ausentes"
+              title="Ausentes injustificados"
               items={agent.ausentes}
               onClose={() => setOpenAusentes(false)}
-            />
-          ) : null}
-
-          {openCapacitaciones && agent ? (
-            <AttendanceModal
-              title="Capacitaciones"
-              items={agent.capacitaciones}
-              onClose={() => setOpenCapacitaciones(false)}
             />
           ) : null}
 
@@ -581,6 +630,17 @@ export default function DocenteDetallePage() {
                     />
                   </FormField>
 
+                  <div className="md:col-span-2">
+                    <FormField label="Título que posee">
+                      <textarea
+                        rows={3}
+                        value={form.titles}
+                        onChange={(e) => updateForm('titles', e.target.value)}
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                      />
+                    </FormField>
+                  </div>
+
                   <FormField label="Cédula de identidad">
                     <input
                       type="text"
@@ -591,15 +651,6 @@ export default function DocenteDetallePage() {
                       className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
-
-                  <FormField label="Títulos" full>
-                    <textarea
-                      value={form.titles}
-                      onChange={(e) => updateForm('titles', e.target.value)}
-                      rows={4}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                    />
-                  </FormField>
                 </div>
 
                 <div className="mt-6 flex flex-wrap gap-3">
@@ -607,7 +658,7 @@ export default function DocenteDetallePage() {
                     type="button"
                     onClick={handleUpdate}
                     disabled={savingForm}
-                    className="rounded-2xl bg-slate-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60"
+                    className="rounded-2xl bg-slate-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
                   >
                     {savingForm ? 'Guardando...' : 'Guardar cambios'}
                   </button>
@@ -626,103 +677,5 @@ export default function DocenteDetallePage() {
         </section>
       </main>
     </ProtectedPage>
-  );
-}
-
-function AttendanceModal({
-  title,
-  items,
-  onClose,
-}: {
-  title: string;
-  items?: AttendanceItem[];
-  onClose: () => void;
-}) {
-  const formatDate = (date?: string | null) => {
-    if (!date) return '-';
-
-    const safe = new Date(date);
-    if (Number.isNaN(safe.getTime())) return date;
-
-    return safe.toLocaleDateString('es-AR');
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:hidden">
-      <div className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-            {title}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-100"
-          >
-            Cerrar
-          </button>
-        </div>
-
-        {items && items.length > 0 ? (
-          <div className="space-y-3">
-            {items.map((item, index) => (
-              <div
-                key={item.id ?? index}
-                className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-              >
-                <p>
-                  <span className="font-semibold">Desde:</span>{' '}
-                  {formatDate(item.start_date)}
-                </p>
-                <p>
-                  <span className="font-semibold">Hasta:</span>{' '}
-                  {formatDate(item.end_date)}
-                </p>
-                <p>
-                  <span className="font-semibold">Cantidad de días:</span>{' '}
-                  {item.quantity_days ?? '-'}
-                </p>
-                <p>
-                  <span className="font-semibold">Documento:</span>{' '}
-                  {item.document_number ?? '-'}
-                </p>
-                <p>
-                  <span className="font-semibold">Descripción:</span>{' '}
-                  {item.description ?? '-'}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            No hay registros.
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function FormField({
-  label,
-  children,
-  error,
-  full = false,
-}: {
-  label: string;
-  children: React.ReactNode;
-  error?: string;
-  full?: boolean;
-}) {
-  return (
-    <div className={full ? 'md:col-span-2' : ''}>
-      <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
-        {label}
-      </label>
-      {children}
-      {error ? (
-        <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
-      ) : null}
-    </div>
   );
 }

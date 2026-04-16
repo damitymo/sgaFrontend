@@ -11,7 +11,7 @@ type LoggedUser = {
   agent_id?: number | null;
 };
 
-type RevistaItem = {
+export type RevistaItem = {
   id?: number;
   revista_type?: string;
   character_type?: string;
@@ -30,16 +30,21 @@ type RevistaItem = {
   } | null;
 };
 
-type AttendanceItem = {
+export type AttendanceItem = {
   id?: number;
-  start_date?: string | null;
-  end_date?: string | null;
-  quantity_days?: number | null;
-  description?: string | null;
-  document_number?: string | null;
+  agent_id?: number;
+  attendance_date?: string | null;
+  status?: 'PRESENTE' | 'AUSENTE_INJUSTIFICADO' | 'LICENCIA';
+  raw_code?: string | null;
+  condition_type?: string | null;
+  shift?: string | null;
+  source_sheet_name?: string | null;
+  source_agent_name?: string | null;
+  source_dni?: string | null;
+  observation?: string | null;
 };
 
-type AgentProfile = {
+export type AgentProfile = {
   id: number;
   last_name?: string | null;
   first_name?: string | null;
@@ -62,14 +67,13 @@ type AgentProfile = {
   revista_historica?: RevistaItem[];
   licencias?: AttendanceItem[];
   ausentes?: AttendanceItem[];
-  capacitaciones?: AttendanceItem[];
+  presentes?: AttendanceItem[];
 };
 
 type Props = {
   agent: AgentProfile;
   onOpenLicencias: () => void;
   onOpenAusentes: () => void;
-  onOpenCapacitaciones: () => void;
   onRefreshProfile: () => Promise<void> | void;
 };
 
@@ -263,7 +267,6 @@ export function DocenteDatosPanel({
   agent,
   onOpenLicencias,
   onOpenAusentes,
-  onOpenCapacitaciones,
   onRefreshProfile,
 }: Props) {
   const [revistaView, setRevistaView] = useState<RevistaView>('actual');
@@ -275,7 +278,6 @@ export function DocenteDatosPanel({
     loggedUser?.role === 'ADMIN' || loggedUser?.role === 'ADMINISTRATIVO';
 
   const revistaActual = useMemo(() => agent.revista_actual ?? [], [agent.revista_actual]);
-
   const revistaHistorica = useMemo(
     () => agent.revista_historica ?? [],
     [agent.revista_historica],
@@ -338,7 +340,7 @@ export function DocenteDatosPanel({
           </h3>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <button
             type="button"
             onClick={onOpenLicencias}
@@ -358,23 +360,10 @@ export function DocenteDatosPanel({
             className="rounded-2xl border bg-slate-50 p-4 text-left transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
           >
             <p className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Ausentes
+              Ausentes injustificados
             </p>
             <p className="mt-2 text-3xl font-bold text-slate-800 dark:text-slate-100">
               {agent.ausentes?.length ?? 0}
-            </p>
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenCapacitaciones}
-            className="rounded-2xl border bg-slate-50 p-4 text-left transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
-          >
-            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Capacitaciones
-            </p>
-            <p className="mt-2 text-3xl font-bold text-slate-800 dark:text-slate-100">
-              {agent.capacitaciones?.length ?? 0}
             </p>
           </button>
         </div>
@@ -382,31 +371,19 @@ export function DocenteDatosPanel({
 
       {canManageMovements ? (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden dark:border-slate-800 dark:bg-slate-900">
-          <div className="mb-4">
-            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-              Movimientos
-            </p>
-            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-              Designación / baja
-            </h3>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              Registrá movimientos institucionales para este docente.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
+          <div className="mb-4 flex flex-wrap gap-3">
             <button
               type="button"
               onClick={() => setIsDesignacionOpen(true)}
-              className="rounded-2xl bg-slate-800 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+              className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
             >
-              Nueva designación
+              Registrar designación
             </button>
 
             <button
               type="button"
               onClick={() => setIsBajaOpen(true)}
-              className="rounded-2xl border border-red-300 bg-white px-5 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-800 dark:bg-slate-900 dark:text-red-300 dark:hover:bg-red-900/30"
+              className="rounded-2xl border border-red-300 bg-white px-5 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-800 dark:bg-slate-800 dark:text-red-300 dark:hover:bg-red-900/30"
             >
               Registrar baja
             </button>
@@ -414,112 +391,59 @@ export function DocenteDatosPanel({
         </section>
       ) : null}
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden dark:border-slate-800 dark:bg-slate-900">
-        <div className="mb-4">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-            Situación de revista
-          </p>
-          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-            Vista seleccionada
-          </h3>
-        </div>
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:rounded-none print:border-slate-400 print:p-4 print:shadow-none dark:border-slate-800 dark:bg-slate-900">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-4 print:mb-3">
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 print:text-[10px] dark:text-slate-400">
+              Situación de revista
+            </p>
+            <h3 className="text-2xl font-bold text-slate-800 print:text-lg dark:text-slate-100">
+              Revista {revistaView === 'actual' ? 'actual' : 'histórica'}
+            </h3>
+          </div>
 
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => setRevistaView('actual')}
-            className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
-              revistaView === 'actual'
-                ? 'bg-slate-800 text-white'
-                : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700'
-            }`}
-          >
-            Revista actual
-          </button>
+          <div className="flex gap-2 print:hidden">
+            <button
+              type="button"
+              onClick={() => setRevistaView('actual')}
+              className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
+                revistaView === 'actual'
+                  ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900'
+                  : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              Actual
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setRevistaView('historica')}
-            className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
-              revistaView === 'historica'
-                ? 'bg-slate-800 text-white'
-                : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700'
-            }`}
-          >
-            Revista histórica
-          </button>
-        </div>
-      </section>
-
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden dark:border-slate-800 dark:bg-slate-900">
-        <div className="mb-4">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-            Situación laboral
-          </p>
-          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-            {revistaView === 'actual' ? 'Revista actual' : 'Revista histórica'}
-          </h3>
+            <button
+              type="button"
+              onClick={() => setRevistaView('historica')}
+              className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
+                revistaView === 'historica'
+                  ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900'
+                  : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              Histórica
+            </button>
+          </div>
         </div>
 
         <RevistaTable
           items={revistaItems}
           emptyText={
             revistaView === 'actual'
-              ? 'No hay situación de revista actual registrada.'
-              : 'No hay situación de revista histórica registrada.'
+              ? 'No hay registros vigentes de situación de revista.'
+              : 'No hay historial de situación de revista.'
           }
         />
       </section>
 
-      <section className="hidden print:block print:break-before-page print:pt-4">
-        <div className="mb-3 border border-slate-400 p-3">
-          <div className="text-center">
-            <p className="text-[10px] font-semibold uppercase">
-              Ministerio de Educación - Dirección de Nivel Secundario
-            </p>
-            <p className="text-[11px] font-semibold">
-              Escuela Técnica “Valentín Virasoro”
-            </p>
-            <p className="mt-2 text-[12px] font-bold uppercase">
-              Planilla - Situación de Revista
-            </p>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <div>
-              <span className="text-[10px] font-semibold">Docente:</span>{' '}
-              <span className="text-[10px]">{agent.full_name}</span>
-            </div>
-            <div>
-              <span className="text-[10px] font-semibold">DNI:</span>{' '}
-              <span className="text-[10px]">{agent.dni}</span>
-            </div>
-          </div>
-        </div>
-
-        <RevistaTable
-          items={revistaActual}
-          emptyText="No hay situación de revista actual registrada."
-        />
-
-        {revistaHistorica.length > 0 ? (
-          <div className="mt-4">
-            <h4 className="mb-2 text-[11px] font-bold uppercase">
-              Historial
-            </h4>
-            <RevistaTable
-              items={revistaHistorica}
-              emptyText="No hay situación de revista histórica registrada."
-            />
-          </div>
-        ) : null}
-      </section>
-
       {isDesignacionOpen ? (
         <AssignmentModal
+          movementType="DESIGNACION"
           agentId={agent.id}
           agentName={agent.full_name}
-          movementType="DESIGNACION"
           onClose={() => setIsDesignacionOpen(false)}
           onSuccess={async () => {
             setIsDesignacionOpen(false);
@@ -530,9 +454,9 @@ export function DocenteDatosPanel({
 
       {isBajaOpen ? (
         <AssignmentModal
+          movementType="BAJA"
           agentId={agent.id}
           agentName={agent.full_name}
-          movementType="BAJA"
           onClose={() => setIsBajaOpen(false)}
           onSuccess={async () => {
             setIsBajaOpen(false);
