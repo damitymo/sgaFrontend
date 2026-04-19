@@ -193,13 +193,15 @@ function FormField({
   label,
   error,
   children,
+  full = false,
 }: {
   label: string;
   error?: string;
   children: React.ReactNode;
+  full?: boolean;
 }) {
   return (
-    <div>
+    <div className={full ? 'md:col-span-2' : ''}>
       <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
         {label}
       </label>
@@ -261,9 +263,11 @@ export default function DocenteDetallePage() {
     try {
       setLoading(true);
       setMessage('');
+
       const response = await api.get<AgentProfile>(
         `/agents/${docenteId}/full-profile`,
       );
+
       setAgent(response.data);
     } catch (error) {
       console.error(error);
@@ -532,6 +536,15 @@ export default function DocenteDetallePage() {
                     />
                   </FormField>
 
+                  <FormField label="Nombre completo">
+                    <input
+                      type="text"
+                      value={form.full_name}
+                      readOnly
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                    />
+                  </FormField>
+
                   <FormField label="DNI" error={formErrors.dni}>
                     <input
                       type="text"
@@ -550,16 +563,16 @@ export default function DocenteDetallePage() {
                     />
                   </FormField>
 
-                  <FormField label="Domicilio">
+                  <FormField label="Email" error={formErrors.email}>
                     <input
-                      type="text"
-                      value={form.address}
-                      onChange={(e) => updateForm('address', e.target.value)}
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => updateForm('email', e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
 
-                  <FormField label="Teléfono fijo">
+                  <FormField label="Teléfono">
                     <input
                       type="text"
                       value={form.phone}
@@ -577,16 +590,16 @@ export default function DocenteDetallePage() {
                     />
                   </FormField>
 
-                  <FormField label="Email" error={formErrors.email}>
+                  <FormField label="Domicilio" full>
                     <input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => updateForm('email', e.target.value)}
+                      type="text"
+                      value={form.address}
+                      onChange={(e) => updateForm('address', e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
 
-                  <FormField label="Legajo en junta">
+                  <FormField label="Legajo junta">
                     <input
                       type="text"
                       value={form.board_file_number}
@@ -630,16 +643,14 @@ export default function DocenteDetallePage() {
                     />
                   </FormField>
 
-                  <div className="md:col-span-2">
-                    <FormField label="Título que posee">
-                      <textarea
-                        rows={3}
-                        value={form.titles}
-                        onChange={(e) => updateForm('titles', e.target.value)}
-                        className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                      />
-                    </FormField>
-                  </div>
+                  <FormField label="Título que posee" full>
+                    <textarea
+                      rows={3}
+                      value={form.titles}
+                      onChange={(e) => updateForm('titles', e.target.value)}
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    />
+                  </FormField>
 
                   <FormField label="Cédula de identidad">
                     <input
