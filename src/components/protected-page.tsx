@@ -1,7 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
-import { redirect } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { getUser } from '@/lib/auth';
 
 type Props = {
@@ -9,40 +8,37 @@ type Props = {
   allowedRoles?: string[];
 };
 
+/**
+ * Gate de cliente: chequea que haya un `user` guardado en localStorage y
+ * (opcionalmente) que su rol esté en `allowedRoles`. El token real vive
+ * en una cookie httpOnly que el browser maneja solo — si venció o no
+ * existe, el backend devuelve 401 y el interceptor global de axios
+ * (ver `lib/api.ts`) redirige a /login.
+ *
+ * El chequeo corre en `useEffect` (no en render) para evitar hydration
+ * mismatches: SSR y primer render en cliente devuelven siempre null,
+ * después el efecto lee localStorage y decide si renderizar o redirigir.
+ */
 export function ProtectedPage({ children, allowedRoles }: Props) {
-  const isAuthorized = useMemo(() => {
-    if (typeof window === 'undefined') return null;
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
-    const token = localStorage.getItem('token');
+  useEffect(() => {
     const user = getUser();
 
-    if (!token || !user) {
-      return false;
+    if (!user) {
+      window.location.replace('/login');
+      return;
     }
 
     if (allowedRoles && (!user.role || !allowedRoles.includes(user.role))) {
-      return false;
+      window.location.replace('/');
+      return;
     }
 
-    return true;
+    setIsAuthorized(true);
   }, [allowedRoles]);
 
-  if (isAuthorized === null) return null;
-
-  if (!isAuthorized) {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      const user = getUser();
-
-      if (!token || !user) {
-        window.location.replace('/login');
-      } else {
-        window.location.replace('/');
-      }
-    }
-
-    return null;
-  }
+  if (isAuthorized !== true) return null;
 
   return <>{children}</>;
 }

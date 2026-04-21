@@ -1,9 +1,10 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { logout } from '@/lib/api';
 
 type LoggedUser = {
   id: number;
@@ -14,31 +15,29 @@ type LoggedUser = {
 };
 
 export function AppHeader() {
-  const router = useRouter();
+  // Leemos el user en useEffect (no en render) para evitar hydration
+  // mismatch: SSR/primer render no pueden ver localStorage, así que
+  // arrancamos con `null` y actualizamos después de montar.
+  const [user, setUser] = useState<LoggedUser | null>(null);
 
-  const isBrowser = typeof window !== 'undefined';
-
-  let user: LoggedUser | null = null;
-
-  if (isBrowser) {
+  useEffect(() => {
     const storedUser = localStorage.getItem('user');
+    if (!storedUser) return;
 
-    if (storedUser) {
-      try {
-        user = JSON.parse(storedUser) as LoggedUser;
-      } catch (error) {
-        console.error('No se pudo leer el usuario logueado', error);
-      }
+    try {
+      setUser(JSON.parse(storedUser) as LoggedUser);
+    } catch (error) {
+      console.error('No se pudo leer el usuario logueado', error);
     }
-  }
+  }, []);
 
   const isAgent = user?.role === 'AGENTE';
   const isAdmin = user?.role === 'ADMIN';
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.replace('/login');
+  const handleLogout = async () => {
+    // Llama a /auth/logout para que el backend limpie la cookie httpOnly,
+    // limpia el user de localStorage y redirige a /login.
+    await logout();
   };
 
   return (

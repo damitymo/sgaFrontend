@@ -11,10 +11,11 @@ type LoginUser = {
   email?: string | null;
   role: string;
   is_active: boolean;
+  agent_id?: number | null;
+  must_change_password?: boolean;
 };
 
 type LoginResponse = {
-  access_token: string;
   user: LoginUser;
 };
 
@@ -31,14 +32,20 @@ export default function LoginPage() {
       setLoading(true);
       setMessage('');
 
+      // El backend devuelve { user } y además setea la cookie httpOnly
+      // `access_token` con el JWT. Axios ya está configurado con
+      // `withCredentials: true`, así que el browser la guarda y la
+      // reenvía automáticamente en las próximas requests.
       const response = await api.post<LoginResponse>('/auth/login', {
         username,
         password,
       });
 
-      const { access_token, user } = response.data;
+      const { user } = response.data;
 
-      localStorage.setItem('token', access_token);
+      // Guardamos el user en localStorage sólo para poder mostrarlo en la
+      // UI sin un roundtrip extra. El token — lo sensible — vive en la
+      // cookie httpOnly y no es accesible desde JS.
       localStorage.setItem('user', JSON.stringify(user));
 
       router.push('/');
