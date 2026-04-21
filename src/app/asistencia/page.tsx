@@ -141,24 +141,24 @@ export default function AsistenciaPage() {
 
   return (
     <ProtectedPage allowedRoles={['ADMIN', 'ADMINISTRATIVO']}>
-      <main className="min-h-screen bg-slate-100">
+      <main className="min-h-screen bg-slate-100 dark:bg-slate-950">
         <AppHeader />
 
         <section className="mx-auto max-w-7xl space-y-6 px-6 py-8">
-          <div className="rounded-3xl border bg-white p-6 shadow-sm">
-            <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Módulo
             </p>
-            <h2 className="text-3xl font-bold text-slate-800">Asistencia</h2>
-            <p className="mt-2 text-slate-600">
+            <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Asistencia</h2>
+            <p className="mt-2 text-slate-600 dark:text-slate-300">
               Registro de presentes, ausentes injustificados y licencias.
             </p>
           </div>
 
-          <div className="rounded-3xl border bg-white p-6 shadow-sm space-y-4">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:border-slate-800 dark:bg-slate-900">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[320px_auto] md:items-end">
               <div className="flex flex-col">
-                <label className="mb-1 text-sm font-medium text-slate-700">
+                <label className="mb-1 text-sm font-medium text-slate-700 dark:text-slate-200">
                   Buscar docente por DNI
                 </label>
                 <input
@@ -166,43 +166,43 @@ export default function AsistenciaPage() {
                   value={dni}
                   onChange={(e) => setDni(e.target.value)}
                   placeholder="Ej: 12345678"
-                  className="rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-slate-500"
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
                 />
               </div>
 
               <button
                 onClick={handleSearch}
-                className="rounded-xl bg-slate-800 px-4 py-2 font-medium text-white hover:bg-slate-700"
+                className="rounded-xl bg-slate-800 px-4 py-2 font-medium text-white hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600"
               >
                 Buscar
               </button>
             </div>
 
-            {loading && <p className="text-slate-600">Buscando...</p>}
-            {message && <p className="text-sm text-slate-700">{message}</p>}
+            {loading && <p className="text-slate-600 dark:text-slate-300">Buscando...</p>}
+            {message && <p className="text-sm text-slate-700 dark:text-slate-200">{message}</p>}
           </div>
 
           {agent && (
             <>
               {canManageSystem() && (
-                <div className="rounded-3xl border bg-white p-6 shadow-sm space-y-4">
-                  <h3 className="text-2xl font-bold text-slate-800">
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:border-slate-800 dark:bg-slate-900">
+                  <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
                     Cargar registro de asistencia
                   </h3>
 
-                  <div className="rounded-2xl border bg-slate-50 p-4">
-                    <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+                    <p className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                       Docente
                     </p>
-                    <p className="mt-1 text-lg font-semibold text-slate-800">
+                    <p className="mt-1 text-lg font-semibold text-slate-800 dark:text-slate-100">
                       {agent.full_name}
                     </p>
-                    <p className="text-slate-600">DNI: {agent.dni}</p>
+                    <p className="text-slate-600 dark:text-slate-300">DNI: {agent.dni}</p>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-slate-700">
+                      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                         Fecha
                       </label>
                       <input
@@ -211,12 +211,12 @@ export default function AsistenciaPage() {
                         onChange={(e) =>
                           handleChange('attendance_date', e.target.value)
                         }
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                       />
                     </div>
 
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-slate-700">
+                      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                         Estado
                       </label>
                       <select
@@ -227,7 +227,7 @@ export default function AsistenciaPage() {
                             e.target.value as AttendanceForm['status'],
                           )
                         }
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                       >
                         <option value="PRESENTE">PRESENTE</option>
                         <option value="AUSENTE_INJUSTIFICADO">
@@ -238,7 +238,7 @@ export default function AsistenciaPage() {
                     </div>
 
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-slate-700">
+                      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                         Código crudo
                       </label>
                       <input
@@ -246,12 +246,12 @@ export default function AsistenciaPage() {
                         value={form.raw_code}
                         onChange={(e) => handleChange('raw_code', e.target.value)}
                         placeholder="Ej: P, IJ, L1"
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                       />
                     </div>
 
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-slate-700">
+                      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                         Carácter
                       </label>
                       <input
@@ -261,12 +261,12 @@ export default function AsistenciaPage() {
                           handleChange('condition_type', e.target.value)
                         }
                         placeholder="TITULAR / INTERINO / SUPLENTE"
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                       />
                     </div>
 
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-slate-700">
+                      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                         Turno
                       </label>
                       <input
@@ -274,12 +274,12 @@ export default function AsistenciaPage() {
                         value={form.shift}
                         onChange={(e) => handleChange('shift', e.target.value)}
                         placeholder="MANANA / TARDE / NOCHE"
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                       />
                     </div>
 
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-slate-700">
+                      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                         Hoja origen
                       </label>
                       <input
@@ -289,12 +289,12 @@ export default function AsistenciaPage() {
                           handleChange('source_sheet_name', e.target.value)
                         }
                         placeholder="Ej: PEREZ JUAN TITULAR TM"
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                       />
                     </div>
 
                     <div className="md:col-span-2">
-                      <label className="mb-1 block text-sm font-medium text-slate-700">
+                      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                         Observación
                       </label>
                       <textarea
@@ -303,7 +303,7 @@ export default function AsistenciaPage() {
                           handleChange('observation', e.target.value)
                         }
                         rows={3}
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2"
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                       />
                     </div>
                   </div>
@@ -312,7 +312,7 @@ export default function AsistenciaPage() {
                     <button
                       onClick={handleSave}
                       disabled={saving}
-                      className="rounded-xl bg-slate-800 px-5 py-2 font-medium text-white hover:bg-slate-700 disabled:opacity-60"
+                      className="rounded-xl bg-slate-800 px-5 py-2 font-medium text-white hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600"
                     >
                       {saving ? 'Guardando...' : 'Guardar registro'}
                     </button>
@@ -320,58 +320,58 @@ export default function AsistenciaPage() {
                 </div>
               )}
 
-              <div className="rounded-3xl border bg-white p-6 shadow-sm space-y-4">
-                <h3 className="text-2xl font-bold text-slate-800">
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:border-slate-800 dark:bg-slate-900">
+                <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
                   Historial de asistencia
                 </h3>
 
-                <div className="rounded-2xl border bg-slate-50 p-4">
-                  <p className="text-sm text-slate-600">
-                    <span className="font-semibold text-slate-800">Docente:</span>{' '}
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    <span className="font-semibold text-slate-800 dark:text-slate-100">Docente:</span>{' '}
                     {agent.full_name}
                   </p>
-                  <p className="text-sm text-slate-600">
-                    <span className="font-semibold text-slate-800">DNI:</span>{' '}
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    <span className="font-semibold text-slate-800 dark:text-slate-100">DNI:</span>{' '}
                     {agent.dni}
                   </p>
                 </div>
 
                 {!records.length ? (
-                  <p className="text-slate-600">No hay registros cargados.</p>
+                  <p className="text-slate-600 dark:text-slate-300">No hay registros cargados.</p>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
                     <table className="min-w-full border-collapse">
                       <thead>
-                        <tr className="bg-slate-100">
-                          <th className="border px-3 py-2 text-left">Fecha</th>
-                          <th className="border px-3 py-2 text-left">Estado</th>
-                          <th className="border px-3 py-2 text-left">Código</th>
-                          <th className="border px-3 py-2 text-left">Carácter</th>
-                          <th className="border px-3 py-2 text-left">Turno</th>
-                          <th className="border px-3 py-2 text-left">Hoja origen</th>
-                          <th className="border px-3 py-2 text-left">Observación</th>
+                        <tr className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                          <th className="border border-slate-200 px-3 py-2 text-left dark:border-slate-700">Fecha</th>
+                          <th className="border border-slate-200 px-3 py-2 text-left dark:border-slate-700">Estado</th>
+                          <th className="border border-slate-200 px-3 py-2 text-left dark:border-slate-700">Código</th>
+                          <th className="border border-slate-200 px-3 py-2 text-left dark:border-slate-700">Carácter</th>
+                          <th className="border border-slate-200 px-3 py-2 text-left dark:border-slate-700">Turno</th>
+                          <th className="border border-slate-200 px-3 py-2 text-left dark:border-slate-700">Hoja origen</th>
+                          <th className="border border-slate-200 px-3 py-2 text-left dark:border-slate-700">Observación</th>
                         </tr>
                       </thead>
                       <tbody>
                         {records.map((item) => (
-                          <tr key={item.id}>
-                            <td className="border px-3 py-2">
+                          <tr key={item.id} className="bg-white text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                            <td className="border border-slate-200 px-3 py-2 dark:border-slate-700">
                               {formatDate(item.attendance_date)}
                             </td>
-                            <td className="border px-3 py-2">{item.status}</td>
-                            <td className="border px-3 py-2">
+                            <td className="border border-slate-200 px-3 py-2 dark:border-slate-700">{item.status}</td>
+                            <td className="border border-slate-200 px-3 py-2 dark:border-slate-700">
                               {item.raw_code || '-'}
                             </td>
-                            <td className="border px-3 py-2">
+                            <td className="border border-slate-200 px-3 py-2 dark:border-slate-700">
                               {item.condition_type || '-'}
                             </td>
-                            <td className="border px-3 py-2">
+                            <td className="border border-slate-200 px-3 py-2 dark:border-slate-700">
                               {item.shift || '-'}
                             </td>
-                            <td className="border px-3 py-2">
+                            <td className="border border-slate-200 px-3 py-2 dark:border-slate-700">
                               {item.source_sheet_name || '-'}
                             </td>
-                            <td className="border px-3 py-2">
+                            <td className="border border-slate-200 px-3 py-2 dark:border-slate-700">
                               {item.observation || '-'}
                             </td>
                           </tr>

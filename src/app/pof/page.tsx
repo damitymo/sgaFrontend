@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { AppHeader } from '@/components/app-header';
 import { ProtectedPage } from '@/components/protected-page';
@@ -16,6 +17,7 @@ type PofItem = {
   start_date?: string | null;
   end_date?: string | null;
   revista_status?: string | null;
+  vacancy_status?: string | null;
   legal_norm?: string | null;
   notes?: string | null;
   current_holder?: {
@@ -215,11 +217,28 @@ function printSinglePof(item: PofItem) {
   printWindow.document.close();
 }
 
+type EstadoFilter = 'TODOS' | 'CON_PRESTACION' | 'SIN_PRESTACION' | 'VACANTE' | 'DESAFECTADA';
+
+function matchesEstado(item: PofItem, estado: EstadoFilter): boolean {
+  if (estado === 'TODOS') return true;
+
+  const vacancy = (item.vacancy_status ?? '').toLowerCase();
+  const hasHolder = !!item.current_holder?.full_name;
+
+  if (estado === 'CON_PRESTACION') return hasHolder;
+  if (estado === 'SIN_PRESTACION') return !hasHolder && vacancy !== 'desafectada' && vacancy !== 'vacante';
+  if (estado === 'VACANTE') return vacancy === 'vacante';
+  if (estado === 'DESAFECTADA') return vacancy === 'desafectada';
+
+  return true;
+}
+
 export default function PofPage() {
   const [items, setItems] = useState<PofItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [filters, setFilters] = useState<Filters>(initialFilters);
+  const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>('TODOS');
   const [expandedRows, setExpandedRows] = useState<number[]>([]);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
@@ -266,7 +285,29 @@ export default function PofPage() {
   };
 
   useEffect(() => {
-    loadPof();
+    // Leer filtros desde la URL (?plaza=, ?docente=, ?materia=, ?curso=)
+    // para permitir deep-linking desde otras pantallas — por ejemplo, el
+    // link en /pof/estructura manda a /pof?plaza=50- para filtrar las
+    // plazas del Nivel Funcional 50.
+    const query =
+      typeof window === 'undefined' ? '' : window.location.search;
+    const params = new URLSearchParams(query);
+
+    const urlFilters: Filters = {
+      plaza: params.get('plaza') ?? '',
+      docente: params.get('docente') ?? '',
+      materia: params.get('materia') ?? '',
+      curso: params.get('curso') ?? '',
+    };
+
+    const hasAny = Object.values(urlFilters).some((value) => value !== '');
+
+    if (hasAny) {
+      setFilters(urlFilters);
+      loadPof(urlFilters);
+    } else {
+      loadPof();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -301,6 +342,57 @@ export default function PofPage() {
   const isExpanded = useMemo(
     () => (id: number) => expandedRows.includes(id),
     [expandedRows],
+  );
+
+  /**
+   * Totales globales (sobre lo que el backend devolvió, antes de aplicar el
+   * chip de estado). Se usan arriba del listado como banner tipo "Indicadores
+   * generales" del reporte del MEC.
+   */
+  const totales = useMemo(() => {
+    const normalize = (value?: string | null) =>
+      (value ?? '').trim().toLowerCase();
+
+    let conPrestacion = 0;
+    let sinPrestacion = 0;
+    let vacantes = 0;
+    let desafectadas = 0;
+    let titulares = 0;
+    let interinos = 0;
+    let suplentes = 0;
+
+    for (const item of items) {
+      const vacancy = normalize(item.vacancy_status);
+      const sitRev = normalize(item.current_holder?.status);
+      const movement = normalize(item.current_holder?.movement_type);
+      const hasHolder = !!item.current_holder?.full_name;
+
+      if (hasHolder) conPrestacion += 1;
+      else if (vacancy === 'vacante') vacantes += 1;
+      else if (vacancy === 'desafectada') desafectadas += 1;
+      else sinPrestacion += 1;
+
+      const carrera = sitRev || movement;
+      if (carrera.includes('titular')) titulares += 1;
+      else if (carrera.includes('interino')) interinos += 1;
+      else if (carrera.includes('suplente')) suplentes += 1;
+    }
+
+    return {
+      total: items.length,
+      conPrestacion,
+      sinPrestacion,
+      vacantes,
+      desafectadas,
+      titulares,
+      interinos,
+      suplentes,
+    };
+  }, [items]);
+
+  const visibleItems = useMemo(
+    () => items.filter((item) => matchesEstado(item, estadoFilter)),
+    [items, estadoFilter],
   );
 
   const openEditModal = (item: PofItem) => {
@@ -383,71 +475,82 @@ export default function PofPage() {
   
     return (
   <ProtectedPage allowedRoles={['ADMIN', 'ADMINISTRATIVO']}>
-      <main className="min-h-screen bg-slate-100 print:bg-white">
+      <main className="min-h-screen bg-slate-100 dark:bg-slate-950 print:bg-white">
         <AppHeader />
 
         <section className="mx-auto max-w-7xl space-y-6 px-6 py-8 print:max-w-none print:px-4 print:py-4">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-              Módulo
-            </p>
-            <h2 className="text-3xl font-bold text-slate-800">POF</h2>
-            <p className="mt-2 max-w-3xl text-sm text-slate-600">
-              Listado completo y filtrado de plazas con docente actual,
-              asignatura, curso, horas y normativa.
-            </p>
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 print:hidden">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                  Módulo
+                </p>
+                <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">POF</h2>
+                <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300">
+                  Listado completo y filtrado de plazas con docente actual,
+                  asignatura, curso, horas y normativa.
+                </p>
+              </div>
+
+              <Link
+                href="/pof/estructura"
+                className="self-start rounded-2xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+              >
+                Ver estructura
+              </Link>
+            </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 print:hidden">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Número de plaza
                 </label>
                 <input
                   type="text"
                   value={filters.plaza}
                   onChange={(e) => handleChange('plaza', e.target.value)}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-500"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
                   placeholder="Ej: 50-774"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Docente actual
                 </label>
                 <input
                   type="text"
                   value={filters.docente}
                   onChange={(e) => handleChange('docente', e.target.value)}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-500"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
                   placeholder="Apellido o nombre"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Materia
                 </label>
                 <input
                   type="text"
                   value={filters.materia}
                   onChange={(e) => handleChange('materia', e.target.value)}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-500"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
                   placeholder="Asignatura"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Curso
                 </label>
                 <input
                   type="text"
                   value={filters.curso}
                   onChange={(e) => handleChange('curso', e.target.value)}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-500"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
                   placeholder="Ej: 2"
                 />
               </div>
@@ -457,7 +560,7 @@ export default function PofPage() {
               <button
                 type="button"
                 onClick={handleSearch}
-                className="rounded-2xl bg-slate-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+                className="rounded-2xl bg-slate-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600"
               >
                 Buscar
               </button>
@@ -465,7 +568,7 @@ export default function PofPage() {
               <button
                 type="button"
                 onClick={handleClear}
-                className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
               >
                 Limpiar
               </button>
@@ -473,7 +576,7 @@ export default function PofPage() {
               <button
                 type="button"
                 onClick={handlePrintList}
-                className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
               >
                 Imprimir listado
               </button>
@@ -491,38 +594,131 @@ export default function PofPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm print:rounded-none print:border-slate-400 print:shadow-none">
+          {/* Banner de totales + chips de estado (estilo MEC "Indicadores") */}
+          {!loading && !message && items.length > 0 ? (
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 print:hidden">
+              <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+                <StatCard label="Total" value={totales.total} tone="neutral" />
+                <StatCard
+                  label="Con prestación"
+                  value={totales.conPrestacion}
+                  tone="emerald"
+                />
+                <StatCard
+                  label="Sin prestación"
+                  value={totales.sinPrestacion}
+                  tone="amber"
+                />
+                <StatCard
+                  label="Vacantes"
+                  value={totales.vacantes}
+                  tone="sky"
+                />
+                <StatCard
+                  label="Desafectadas"
+                  value={totales.desafectadas}
+                  tone="rose"
+                />
+                <StatCard
+                  label="Titulares"
+                  value={totales.titulares}
+                  tone="indigo"
+                />
+                <StatCard
+                  label="Interinos"
+                  value={totales.interinos}
+                  tone="indigo"
+                />
+                <StatCard
+                  label="Suplentes"
+                  value={totales.suplentes}
+                  tone="indigo"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="mr-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                  Filtrar por estado:
+                </span>
+                <Chip
+                  active={estadoFilter === 'TODOS'}
+                  onClick={() => setEstadoFilter('TODOS')}
+                >
+                  Todos ({totales.total})
+                </Chip>
+                <Chip
+                  active={estadoFilter === 'CON_PRESTACION'}
+                  onClick={() => setEstadoFilter('CON_PRESTACION')}
+                >
+                  Con prestación ({totales.conPrestacion})
+                </Chip>
+                <Chip
+                  active={estadoFilter === 'SIN_PRESTACION'}
+                  onClick={() => setEstadoFilter('SIN_PRESTACION')}
+                >
+                  Sin prestación ({totales.sinPrestacion})
+                </Chip>
+                <Chip
+                  active={estadoFilter === 'VACANTE'}
+                  onClick={() => setEstadoFilter('VACANTE')}
+                >
+                  Vacantes ({totales.vacantes})
+                </Chip>
+                <Chip
+                  active={estadoFilter === 'DESAFECTADA'}
+                  onClick={() => setEstadoFilter('DESAFECTADA')}
+                >
+                  Desafectadas ({totales.desafectadas})
+                </Chip>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 print:rounded-none print:border-slate-400 print:shadow-none">
             {loading ? (
-              <div className="p-4 text-sm text-slate-600">Cargando POF...</div>
+              <div className="p-4 text-sm text-slate-600 dark:text-slate-300">Cargando POF...</div>
             ) : message ? (
-              <div className="p-4 text-sm text-slate-600">{message}</div>
+              <div className="p-4 text-sm text-slate-600 dark:text-slate-300">{message}</div>
             ) : items.length === 0 ? (
-              <div className="p-4 text-sm text-slate-600">
+              <div className="p-4 text-sm text-slate-600 dark:text-slate-300">
                 No se encontraron resultados.
+              </div>
+            ) : visibleItems.length === 0 ? (
+              <div className="p-4 text-sm text-slate-600 dark:text-slate-300">
+                No hay plazas que coincidan con el estado seleccionado. Probá con
+                otro chip o volvé a{' '}
+                <button
+                  type="button"
+                  onClick={() => setEstadoFilter('TODOS')}
+                  className="font-semibold text-sky-700 hover:underline dark:text-sky-300"
+                >
+                  Todos
+                </button>
+                .
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full border-collapse text-sm print:text-[10px]">
                   <thead>
-                    <tr className="bg-slate-100 text-slate-700 print:bg-white">
-                      <th className="w-12 border border-slate-200 px-2 py-2 text-center font-semibold print:px-1 print:py-1" />
-                      <th className="w-28 border border-slate-200 px-2 py-2 text-left font-semibold print:px-1 print:py-1">
+                    <tr className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 print:bg-white">
+                      <th className="w-12 border border-slate-200 px-2 py-2 text-center font-semibold dark:border-slate-700 print:px-1 print:py-1" />
+                      <th className="w-28 border border-slate-200 px-2 py-2 text-left font-semibold dark:border-slate-700 print:px-1 print:py-1">
                         Plaza
                       </th>
-                      <th className="border border-slate-200 px-2 py-2 text-left font-semibold print:px-1 print:py-1">
+                      <th className="border border-slate-200 px-2 py-2 text-left font-semibold dark:border-slate-700 print:px-1 print:py-1">
                         Cargo / Docente actual
                       </th>
-                      <th className="w-32 border border-slate-200 px-2 py-2 text-left font-semibold print:px-1 print:py-1">
+                      <th className="w-32 border border-slate-200 px-2 py-2 text-left font-semibold dark:border-slate-700 print:px-1 print:py-1">
                         Turno
                       </th>
-                      <th className="w-28 border border-slate-200 px-2 py-2 text-left font-semibold print:px-1 print:py-1 print:hidden">
+                      <th className="w-28 border border-slate-200 px-2 py-2 text-left font-semibold dark:border-slate-700 print:px-1 print:py-1 print:hidden">
                         Acciones
                       </th>
                     </tr>
                   </thead>
 
                   <tbody>
-                    {items.map((item) => (
+                    {visibleItems.map((item) => (
                       <FragmentRow
                         key={item.id}
                         item={item}
@@ -545,14 +741,14 @@ export default function PofPage() {
           </div>
 
           {editingItem ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:hidden">
-              <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 dark:bg-black/60 print:hidden">
+              <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
                 <div className="mb-5 flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                       Modificar plaza
                     </p>
-                    <h3 className="text-2xl font-bold text-slate-800">
+                    <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
                       {editingItem.plaza_number || '-'}
                     </h3>
                   </div>
@@ -560,7 +756,7 @@ export default function PofPage() {
                   <button
                     type="button"
                     onClick={closeEditModal}
-                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     Cerrar
                   </button>
@@ -572,7 +768,7 @@ export default function PofPage() {
                       type="text"
                       value={editForm.subject_name}
                       onChange={(e) => updateEditForm('subject_name', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
                     />
                   </Field>
 
@@ -581,7 +777,7 @@ export default function PofPage() {
                       type="number"
                       value={editForm.hours_count}
                       onChange={(e) => updateEditForm('hours_count', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
                     />
                   </Field>
 
@@ -590,7 +786,7 @@ export default function PofPage() {
                       type="text"
                       value={editForm.course}
                       onChange={(e) => updateEditForm('course', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
                     />
                   </Field>
 
@@ -599,7 +795,7 @@ export default function PofPage() {
                       type="text"
                       value={editForm.division}
                       onChange={(e) => updateEditForm('division', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
                     />
                   </Field>
 
@@ -608,7 +804,7 @@ export default function PofPage() {
                       type="text"
                       value={editForm.shift}
                       onChange={(e) => updateEditForm('shift', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
                     />
                   </Field>
 
@@ -617,7 +813,7 @@ export default function PofPage() {
                       type="text"
                       value={editForm.revista_status}
                       onChange={(e) => updateEditForm('revista_status', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
                     />
                   </Field>
 
@@ -626,7 +822,7 @@ export default function PofPage() {
                       type="date"
                       value={editForm.start_date}
                       onChange={(e) => updateEditForm('start_date', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
                     />
                   </Field>
 
@@ -635,7 +831,7 @@ export default function PofPage() {
                       type="date"
                       value={editForm.end_date}
                       onChange={(e) => updateEditForm('end_date', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
                     />
                   </Field>
 
@@ -644,7 +840,7 @@ export default function PofPage() {
                       type="text"
                       value={editForm.legal_norm}
                       onChange={(e) => updateEditForm('legal_norm', e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
                     />
                   </Field>
 
@@ -653,7 +849,7 @@ export default function PofPage() {
                       value={editForm.notes}
                       onChange={(e) => updateEditForm('notes', e.target.value)}
                       rows={4}
-                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
                     />
                   </Field>
                 </div>
@@ -663,7 +859,7 @@ export default function PofPage() {
                     type="button"
                     onClick={handleSaveEdit}
                     disabled={savingEdit}
-                    className="rounded-2xl bg-slate-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60"
+                    className="rounded-2xl bg-slate-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600"
                   >
                     {savingEdit ? 'Guardando...' : 'Guardar cambios'}
                   </button>
@@ -671,7 +867,7 @@ export default function PofPage() {
                   <button
                     type="button"
                     onClick={closeEditModal}
-                    className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                   >
                     Cancelar
                   </button>
@@ -681,14 +877,14 @@ export default function PofPage() {
           ) : null}
 
           {historyItem ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:hidden">
-              <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 dark:bg-black/60 print:hidden">
+              <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
                 <div className="mb-5 flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                       Historial de cambios
                     </p>
-                    <h3 className="text-2xl font-bold text-slate-800">
+                    <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
                       {historyItem.plaza_number || '-'}
                     </h3>
                   </div>
@@ -696,50 +892,50 @@ export default function PofPage() {
                   <button
                     type="button"
                     onClick={closeHistoryModal}
-                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                    className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     Cerrar
                   </button>
                 </div>
 
                 {historyLoading ? (
-                  <p className="text-sm text-slate-600">Cargando historial...</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">Cargando historial...</p>
                 ) : historyRows.length === 0 ? (
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
                     No hay cambios registrados para esta plaza.
                   </p>
                 ) : (
-                  <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                  <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
                     <table className="min-w-full border-collapse text-sm">
-                      <thead className="bg-slate-100 text-slate-700">
+                      <thead className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                         <tr>
-                          <th className="border border-slate-200 px-3 py-2 text-left font-semibold">
+                          <th className="border border-slate-200 px-3 py-2 text-left font-semibold dark:border-slate-700">
                             Fecha
                           </th>
-                          <th className="border border-slate-200 px-3 py-2 text-left font-semibold">
+                          <th className="border border-slate-200 px-3 py-2 text-left font-semibold dark:border-slate-700">
                             Campo
                           </th>
-                          <th className="border border-slate-200 px-3 py-2 text-left font-semibold">
+                          <th className="border border-slate-200 px-3 py-2 text-left font-semibold dark:border-slate-700">
                             Valor anterior
                           </th>
-                          <th className="border border-slate-200 px-3 py-2 text-left font-semibold">
+                          <th className="border border-slate-200 px-3 py-2 text-left font-semibold dark:border-slate-700">
                             Valor nuevo
                           </th>
                         </tr>
                       </thead>
                       <tbody>
                         {historyRows.map((row) => (
-                          <tr key={row.id} className="bg-white">
-                            <td className="border border-slate-200 px-3 py-2">
+                          <tr key={row.id} className="bg-white dark:bg-slate-900">
+                            <td className="border border-slate-200 px-3 py-2 text-slate-700 dark:border-slate-700 dark:text-slate-200">
                               {formatDateTime(row.created_at)}
                             </td>
-                            <td className="border border-slate-200 px-3 py-2">
+                            <td className="border border-slate-200 px-3 py-2 text-slate-700 dark:border-slate-700 dark:text-slate-200">
                               {fieldLabel(row.field_name)}
                             </td>
-                            <td className="border border-slate-200 px-3 py-2">
+                            <td className="border border-slate-200 px-3 py-2 text-slate-700 dark:border-slate-700 dark:text-slate-200">
                               {formatHistoryValue(row.old_value)}
                             </td>
-                            <td className="border border-slate-200 px-3 py-2">
+                            <td className="border border-slate-200 px-3 py-2 text-slate-700 dark:border-slate-700 dark:text-slate-200">
                               {formatHistoryValue(row.new_value)}
                             </td>
                           </tr>
@@ -768,7 +964,7 @@ function Field({
 }) {
   return (
     <div className={full ? 'md:col-span-2' : ''}>
-      <label className="mb-2 block text-sm font-semibold text-slate-700">
+      <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
         {label}
       </label>
       {children}
@@ -799,30 +995,30 @@ function FragmentRow({
 }) {
   return (
     <>
-      <tr className="bg-white">
-        <td className="border border-slate-200 px-2 py-2 text-center align-top print:px-1 print:py-1">
+      <tr className="bg-white dark:bg-slate-900">
+        <td className="border border-slate-200 px-2 py-2 text-center align-top dark:border-slate-700 print:px-1 print:py-1">
           <button
             type="button"
             onClick={toggleExpanded}
-            className="mx-auto flex h-6 w-6 items-center justify-center rounded border border-slate-300 bg-slate-50 text-xs font-bold text-slate-500 transition hover:bg-slate-100"
+            className="mx-auto flex h-6 w-6 items-center justify-center rounded border border-slate-300 bg-slate-50 text-xs font-bold text-slate-500 transition hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             {isExpanded ? '−' : '+'}
           </button>
         </td>
 
-        <td className="border border-slate-200 px-2 py-2 align-top print:px-1 print:py-1">
-          <p className="text-sm font-bold text-sky-700 print:text-[10px]">
+        <td className="border border-slate-200 px-2 py-2 align-top dark:border-slate-700 print:px-1 print:py-1">
+          <p className="text-sm font-bold text-sky-700 dark:text-sky-300 print:text-[10px]">
             {item.plaza_number || '-'}
           </p>
         </td>
 
-        <td className="border border-slate-200 px-2 py-2 align-top print:px-1 print:py-1">
-          <p className="text-sm font-semibold uppercase text-slate-700 print:text-[10px]">
+        <td className="border border-slate-200 px-2 py-2 align-top dark:border-slate-700 print:px-1 print:py-1">
+          <p className="text-sm font-semibold uppercase text-slate-700 dark:text-slate-100 print:text-[10px]">
             {item.subject_name || '-'}
           </p>
 
-          <div className="mt-1 text-xs text-slate-600 print:text-[9px]">
-            <span className="font-semibold text-slate-700">
+          <div className="mt-1 text-xs text-slate-600 dark:text-slate-300 print:text-[9px]">
+            <span className="font-semibold text-slate-700 dark:text-slate-200">
               {holderText(item)}
             </span>
             {' | '}
@@ -832,29 +1028,29 @@ function FragmentRow({
           </div>
         </td>
 
-        <td className="border border-slate-200 px-2 py-2 align-top text-sm text-slate-700 print:px-1 print:py-1 print:text-[10px]">
+        <td className="border border-slate-200 px-2 py-2 align-top text-sm text-slate-700 dark:border-slate-700 dark:text-slate-200 print:px-1 print:py-1 print:text-[10px]">
           {shiftLabel(item.shift)}
         </td>
 
-        <td className="border border-slate-200 px-2 py-2 align-top print:hidden">
+        <td className="border border-slate-200 px-2 py-2 align-top dark:border-slate-700 print:hidden">
           <div className="relative">
             <button
               type="button"
               onClick={toggleMenu}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
             >
               Acciones
             </button>
 
             {menuOpen ? (
-              <div className="absolute right-0 top-9 z-20 min-w-[170px] rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+              <div className="absolute right-0 top-9 z-20 min-w-[170px] rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-800">
                 <button
                   type="button"
                   onClick={() => {
                     onEdit();
                     closeMenu();
                   }}
-                  className="block w-full rounded-lg px-3 py-2 text-left text-xs text-slate-700 transition hover:bg-slate-100"
+                  className="block w-full rounded-lg px-3 py-2 text-left text-xs text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-700"
                 >
                   Modificar plaza
                 </button>
@@ -865,7 +1061,7 @@ function FragmentRow({
                     onHistory();
                     closeMenu();
                   }}
-                  className="block w-full rounded-lg px-3 py-2 text-left text-xs text-slate-700 transition hover:bg-slate-100"
+                  className="block w-full rounded-lg px-3 py-2 text-left text-xs text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-700"
                 >
                   Ver historial
                 </button>
@@ -876,7 +1072,7 @@ function FragmentRow({
                     onPrint();
                     closeMenu();
                   }}
-                  className="block w-full rounded-lg px-3 py-2 text-left text-xs text-slate-700 transition hover:bg-slate-100"
+                  className="block w-full rounded-lg px-3 py-2 text-left text-xs text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-700"
                 >
                   Imprimir plaza
                 </button>
@@ -887,11 +1083,11 @@ function FragmentRow({
       </tr>
 
       {isExpanded ? (
-        <tr className="bg-slate-50 print:table-row">
-          <td className="border border-slate-200" />
+        <tr className="bg-slate-50 dark:bg-slate-800 print:table-row">
+          <td className="border border-slate-200 dark:border-slate-700" />
           <td
             colSpan={4}
-            className="border border-slate-200 px-3 py-3 text-xs text-slate-700 print:px-1 print:py-1 print:text-[9px]"
+            className="border border-slate-200 px-3 py-3 text-xs text-slate-700 dark:border-slate-700 dark:text-slate-200 print:px-1 print:py-1 print:text-[9px]"
           >
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
               <p>
@@ -939,5 +1135,65 @@ function FragmentRow({
         </tr>
       ) : null}
     </>
+  );
+}
+
+/**
+ * Tarjeta de indicador para el banner de totales. Los tonos son consistentes
+ * con la paleta del resto del sistema (slate como base, acentos por estado).
+ */
+function StatCard({
+  label,
+  value,
+  tone = 'neutral',
+}: {
+  label: string;
+  value: number;
+  tone?: 'neutral' | 'emerald' | 'amber' | 'sky' | 'rose' | 'indigo';
+}) {
+  const tones: Record<string, string> = {
+    neutral:
+      'border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100',
+    emerald:
+      'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200',
+    amber:
+      'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200',
+    sky: 'border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-200',
+    rose: 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200',
+    indigo:
+      'border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-200',
+  };
+
+  return (
+    <div className={`rounded-2xl border px-3 py-2.5 ${tones[tone]}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
+        {label}
+      </p>
+      <p className="mt-1 text-xl font-bold tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+function Chip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        active
+          ? 'rounded-full bg-slate-800 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm dark:bg-slate-100 dark:text-slate-900'
+          : 'rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
+      }
+    >
+      {children}
+    </button>
   );
 }

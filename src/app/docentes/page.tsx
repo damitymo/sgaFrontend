@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
+import { AppHeader } from '@/components/app-header';
+import { ProtectedPage } from '@/components/protected-page';
 
 type Agent = {
   id: number;
@@ -66,7 +69,8 @@ export default function DocentesPage() {
       setLoading(false);
     }
   };
-    const handleSelectAgent = async (agent: Agent) => {
+
+  const handleQuickPreview = async (agent: Agent) => {
     try {
       setLoadingProfile(true);
       setSelectedAgent(null);
@@ -84,88 +88,221 @@ export default function DocentesPage() {
   };
 
   return (
-    <main className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Docentes</h1>
+    <ProtectedPage allowedRoles={['ADMIN', 'ADMINISTRATIVO']}>
+      <main className="min-h-screen bg-slate-100 dark:bg-slate-950">
+        <AppHeader />
 
-      {/* Filtros */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <input
-          placeholder="DNI"
-          value={filters.dni}
-          onChange={(e) => setFilters({ ...filters, dni: e.target.value })}
-          className="border p-2 rounded"
-        />
-        <input
-          placeholder="Apellido"
-          value={filters.apellido}
-          onChange={(e) => setFilters({ ...filters, apellido: e.target.value })}
-          className="border p-2 rounded"
-        />
-        <input
-          placeholder="Nombre"
-          value={filters.nombre}
-          onChange={(e) => setFilters({ ...filters, nombre: e.target.value })}
-          className="border p-2 rounded"
-        />
-        <input
-          placeholder="Materia"
-          value={filters.materia}
-          onChange={(e) => setFilters({ ...filters, materia: e.target.value })}
-          className="border p-2 rounded"
-        />
-      </div>
-
-      <button
-        onClick={handleSearch}
-        disabled={loading}
-        className="bg-blue-600 text-white px-4 py-2 rounded"
-      >
-        {loading ? 'Buscando...' : 'Buscar'}
-      </button>
-
-      {message && <p className="text-red-500">{message}</p>}
-
-      {/* Resultados */}
-      <div className="space-y-2">
-        {results.map((agent) => (
-          <div
-            key={agent.id}
-            className="border p-3 rounded flex justify-between items-center"
-          >
-            <div>
-              <p className="font-medium">{agent.full_name}</p>
-              <p className="text-sm text-gray-500">DNI: {agent.dni}</p>
-            </div>
-
-            <button
-              onClick={() => handleSelectAgent(agent)}
-              className="bg-slate-800 text-white px-3 py-1 rounded"
-            >
-              Ver
-            </button>
+        <section className="mx-auto max-w-7xl space-y-6 px-6 py-8">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              Módulo
+            </p>
+            <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">
+              Docentes
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300">
+              Buscá docentes por DNI, apellido, nombre o materia. Abrí la ficha
+              completa para ver plazas, prestaciones y situación de revista.
+            </p>
           </div>
-        ))}
-      </div>
-            {/* Perfil */}
-      {isProfileOpen && selectedAgent && (
-        <div className="mt-6 border rounded p-4 bg-white shadow">
-          <h2 className="text-xl font-bold mb-2">Perfil</h2>
 
-          {loadingProfile ? (
-            <p>Cargando...</p>
-          ) : (
-            <div className="space-y-1">
-              <p><b>Nombre:</b> {selectedAgent.full_name}</p>
-              <p><b>DNI:</b> {selectedAgent.dni}</p>
-              <p><b>Email:</b> {selectedAgent.email || '-'}</p>
-              <p><b>Teléfono:</b> {selectedAgent.phone || '-'}</p>
-              <p><b>Celular:</b> {selectedAgent.mobile || '-'}</p>
-              <p><b>Domicilio:</b> {selectedAgent.address || '-'}</p>
-              <p><b>Fecha nacimiento:</b> {selectedAgent.birth_date || '-'}</p>
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  DNI
+                </label>
+                <input
+                  type="text"
+                  value={filters.dni}
+                  onChange={(e) => setFilters({ ...filters, dni: e.target.value })}
+                  placeholder="Ej: 12345678"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  Apellido
+                </label>
+                <input
+                  type="text"
+                  value={filters.apellido}
+                  onChange={(e) =>
+                    setFilters({ ...filters, apellido: e.target.value })
+                  }
+                  placeholder="Apellido"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  Nombre
+                </label>
+                <input
+                  type="text"
+                  value={filters.nombre}
+                  onChange={(e) =>
+                    setFilters({ ...filters, nombre: e.target.value })
+                  }
+                  placeholder="Nombre"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  Materia
+                </label>
+                <input
+                  type="text"
+                  value={filters.materia}
+                  onChange={(e) =>
+                    setFilters({ ...filters, materia: e.target.value })
+                  }
+                  placeholder="Asignatura"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
+                />
+              </div>
             </div>
-          )}
-        </div>
-      )}
-    </main>
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleSearch}
+                disabled={loading}
+                className="rounded-2xl bg-slate-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600"
+              >
+                {loading ? 'Buscando...' : 'Buscar'}
+              </button>
+            </div>
+
+            {message ? (
+              <p className="mt-3 text-sm text-red-600 dark:text-red-400">
+                {message}
+              </p>
+            ) : null}
+          </div>
+
+          {results.length > 0 ? (
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="overflow-x-auto">
+                <table className="min-w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                      <th className="border border-slate-200 px-3 py-2 text-left font-semibold dark:border-slate-700">
+                        Apellido y nombre
+                      </th>
+                      <th className="w-32 border border-slate-200 px-3 py-2 text-left font-semibold dark:border-slate-700">
+                        DNI
+                      </th>
+                      <th className="w-52 border border-slate-200 px-3 py-2 text-left font-semibold dark:border-slate-700">
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.map((agent) => (
+                      <tr
+                        key={agent.id}
+                        className="bg-white dark:bg-slate-900"
+                      >
+                        <td className="border border-slate-200 px-3 py-2 font-medium text-slate-800 dark:border-slate-700 dark:text-slate-100">
+                          {agent.full_name}
+                        </td>
+                        <td className="border border-slate-200 px-3 py-2 text-slate-700 dark:border-slate-700 dark:text-slate-200">
+                          {agent.dni}
+                        </td>
+                        <td className="border border-slate-200 px-3 py-2 dark:border-slate-700">
+                          <div className="flex gap-2">
+                            <Link
+                              href={`/docentes/${agent.id}`}
+                              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                            >
+                              Abrir ficha
+                            </Link>
+
+                            <button
+                              type="button"
+                              onClick={() => handleQuickPreview(agent)}
+                              disabled={loadingProfile}
+                              className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600"
+                            >
+                              Vista rápida
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+
+          {isProfileOpen && selectedAgent ? (
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Vista rápida
+                  </p>
+                  <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                    {selectedAgent.full_name}
+                  </h3>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileOpen(false);
+                    setSelectedAgent(null);
+                  }}
+                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  Cerrar
+                </button>
+              </div>
+
+              {loadingProfile ? (
+                <p className="text-slate-600 dark:text-slate-300">Cargando...</p>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <InfoRow label="DNI" value={selectedAgent.dni} />
+                  <InfoRow label="Email" value={selectedAgent.email} />
+                  <InfoRow label="Teléfono" value={selectedAgent.phone} />
+                  <InfoRow label="Celular" value={selectedAgent.mobile} />
+                  <InfoRow label="Domicilio" value={selectedAgent.address} />
+                  <InfoRow
+                    label="Fecha nacimiento"
+                    value={selectedAgent.birth_date}
+                  />
+                </div>
+              )}
+            </div>
+          ) : null}
+        </section>
+      </main>
+    </ProtectedPage>
+  );
+}
+
+function InfoRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null | undefined;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-100">
+        {value || '-'}
+      </p>
+    </div>
   );
 }

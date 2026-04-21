@@ -58,52 +58,52 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-100 flex items-center justify-center px-6">
-      <div className="w-full max-w-md rounded-3xl border bg-white p-8 shadow-sm space-y-6">
+    <main className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center px-6">
+      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm space-y-6 dark:border-slate-800 dark:bg-slate-900">
         <div className="text-center">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Acceso al sistema
           </p>
-          <h1 className="text-3xl font-bold text-slate-800">SGA</h1>
-          <p className="mt-2 text-slate-600">
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">SGA</h1>
+          <p className="mt-2 text-slate-600 dark:text-slate-300">
             Sistema de Gestión Administrativa Escolar
           </p>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
               Usuario
             </label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-slate-500"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
               placeholder="Ingresá tu usuario"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
               Contraseña
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:border-slate-500"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400"
               placeholder="Ingresá tu contraseña"
             />
           </div>
         </div>
 
-        {message ? <p className="text-sm text-red-600">{message}</p> : null}
+        {message ? <p className="text-sm text-red-600 dark:text-red-400">{message}</p> : null}
 
         <button
           onClick={handleLogin}
           disabled={loading}
-          className="w-full rounded-xl bg-slate-800 px-4 py-3 font-medium text-white hover:bg-slate-700 disabled:opacity-60"
+          className="w-full rounded-xl bg-slate-800 px-4 py-3 font-medium text-white hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600"
         >
           {loading ? 'Ingresando...' : 'Ingresar'}
         </button>
