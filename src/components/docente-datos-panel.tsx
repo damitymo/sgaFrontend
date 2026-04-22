@@ -44,6 +44,26 @@ export type AttendanceItem = {
   observation?: string | null;
 };
 
+export type AssignmentItem = {
+  id?: number;
+  revista_type?: string | null;
+  character_type?: string | null;
+  assignment_date?: string | null;
+  end_date?: string | null;
+  legal_norm_type?: string | null;
+  legal_norm_number?: string | null;
+  is_active?: boolean;
+  notes?: string | null;
+  pof_position?: {
+    plaza_number?: string | null;
+    subject_name?: string | null;
+    hours_count?: number | null;
+    course?: string | null;
+    division?: string | null;
+    shift?: string | null;
+  } | null;
+};
+
 export type AgentProfile = {
   id: number;
   last_name?: string | null;
@@ -51,6 +71,10 @@ export type AgentProfile = {
   full_name: string;
   dni: string;
   birth_date?: string | null;
+  sex?: string | null;
+  marital_status?: string | null;
+  birth_place?: string | null;
+  nationality?: string | null;
   address?: string | null;
   phone?: string | null;
   mobile?: string | null;
@@ -65,6 +89,7 @@ export type AgentProfile = {
   notes?: string | null;
   revista_actual?: RevistaItem[];
   revista_historica?: RevistaItem[];
+  assignments?: AssignmentItem[];
   licencias?: AttendanceItem[];
   ausentes?: AttendanceItem[];
   presentes?: AttendanceItem[];

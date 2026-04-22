@@ -5,11 +5,10 @@ import { useParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { AppHeader } from '@/components/app-header';
 import { ProtectedPage } from '@/components/protected-page';
-import {
-  DocenteDatosPanel,
-  type AgentProfile,
-  type AttendanceItem,
-} from '@/components/docente-datos-panel';
+import { type AgentProfile } from '@/components/docente-datos-panel';
+import { LegajoPanel } from '@/components/legajo-panel';
+import { RevistaPanel } from '@/components/revista-panel';
+import { AttendanceGrid } from '@/components/attendance-grid';
 
 type AuthUser = {
   id: number;
@@ -27,6 +26,10 @@ type AgentForm = {
   full_name: string;
   dni: string;
   birth_date: string;
+  sex: string;
+  marital_status: string;
+  birth_place: string;
+  nationality: string;
   address: string;
   phone: string;
   mobile: string;
@@ -47,6 +50,10 @@ const emptyForm: AgentForm = {
   full_name: '',
   dni: '',
   birth_date: '',
+  sex: '',
+  marital_status: '',
+  birth_place: '',
+  nationality: '',
   address: '',
   phone: '',
   mobile: '',
@@ -80,13 +87,8 @@ function buildFullName(lastName: string, firstName: string) {
 function validateAgentForm(form: AgentForm): AgentFormErrors {
   const errors: AgentFormErrors = {};
 
-  if (!form.last_name.trim()) {
-    errors.last_name = 'El apellido es obligatorio.';
-  }
-
-  if (!form.first_name.trim()) {
-    errors.first_name = 'El nombre es obligatorio.';
-  }
+  if (!form.last_name.trim()) errors.last_name = 'El apellido es obligatorio.';
+  if (!form.first_name.trim()) errors.first_name = 'El nombre es obligatorio.';
 
   if (!form.dni.trim()) {
     errors.dni = 'El DNI es obligatorio.';
@@ -94,99 +96,11 @@ function validateAgentForm(form: AgentForm): AgentFormErrors {
     errors.dni = 'El DNI debe contener solo números.';
   }
 
-  if (
-    form.email.trim() &&
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
-  ) {
+  if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
     errors.email = 'El email no tiene un formato válido.';
   }
 
   return errors;
-}
-
-function formatAttendanceDate(date?: string | null) {
-  if (!date) return '-';
-  const safe = new Date(date);
-  if (Number.isNaN(safe.getTime())) return date;
-  return safe.toLocaleDateString('es-AR');
-}
-
-function AttendanceModal({
-  title,
-  items,
-  onClose,
-}: {
-  title: string;
-  items?: AttendanceItem[];
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:hidden">
-      <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
-        <div className="mb-5 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-              Novedades
-            </p>
-            <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
-              {title}
-            </h3>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-100"
-          >
-            Cerrar
-          </button>
-        </div>
-
-        {!items?.length ? (
-          <p className="text-slate-600 dark:text-slate-300">
-            No hay registros cargados.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-slate-100 dark:bg-slate-800">
-                  <th className="border px-3 py-2 text-left">Fecha</th>
-                  <th className="border px-3 py-2 text-left">Estado</th>
-                  <th className="border px-3 py-2 text-left">Código</th>
-                  <th className="border px-3 py-2 text-left">Carácter</th>
-                  <th className="border px-3 py-2 text-left">Turno</th>
-                  <th className="border px-3 py-2 text-left">Hoja origen</th>
-                  <th className="border px-3 py-2 text-left">Observación</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, index) => (
-                  <tr key={item.id ?? index}>
-                    <td className="border px-3 py-2">
-                      {formatAttendanceDate(item.attendance_date)}
-                    </td>
-                    <td className="border px-3 py-2">{item.status || '-'}</td>
-                    <td className="border px-3 py-2">{item.raw_code || '-'}</td>
-                    <td className="border px-3 py-2">
-                      {item.condition_type || '-'}
-                    </td>
-                    <td className="border px-3 py-2">{item.shift || '-'}</td>
-                    <td className="border px-3 py-2">
-                      {item.source_sheet_name || '-'}
-                    </td>
-                    <td className="border px-3 py-2">
-                      {item.observation || '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 }
 
 function FormField({
@@ -222,9 +136,6 @@ export default function DocenteDetallePage() {
   const [agent, setAgent] = useState<AgentProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
-
-  const [openLicencias, setOpenLicencias] = useState(false);
-  const [openAusentes, setOpenAusentes] = useState(false);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [savingForm, setSavingForm] = useState(false);
@@ -319,6 +230,10 @@ export default function DocenteDetallePage() {
       full_name: agent.full_name || '',
       dni: agent.dni || '',
       birth_date: toInputDate(agent.birth_date),
+      sex: agent.sex || '',
+      marital_status: agent.marital_status || '',
+      birth_place: agent.birth_place || '',
+      nationality: agent.nationality || '',
       address: agent.address || '',
       phone: agent.phone || '',
       mobile: agent.mobile || '',
@@ -357,6 +272,10 @@ export default function DocenteDetallePage() {
         full_name: buildFullName(form.last_name, form.first_name),
         dni: form.dni.trim(),
         birth_date: form.birth_date || null,
+        sex: form.sex.trim() || null,
+        marital_status: form.marital_status.trim() || null,
+        birth_place: form.birth_place.trim() || null,
+        nationality: form.nationality.trim() || null,
         address: form.address.trim() || null,
         phone: form.phone.trim() || null,
         mobile: form.mobile.trim() || null,
@@ -428,7 +347,7 @@ export default function DocenteDetallePage() {
               {agent?.full_name || 'Docente'}
             </h2>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-              Vista individual en ventana aparte.
+              Legajo, situación de revista y libro de asistencia.
             </p>
           </div>
 
@@ -471,28 +390,20 @@ export default function DocenteDetallePage() {
           </div>
 
           {agent ? (
-            <DocenteDatosPanel
-              agent={agent}
-              onOpenLicencias={() => setOpenLicencias(true)}
-              onOpenAusentes={() => setOpenAusentes(true)}
-              onRefreshProfile={loadFullProfile}
-            />
-          ) : null}
+            <>
+              <LegajoPanel agent={agent} />
 
-          {openLicencias && agent ? (
-            <AttendanceModal
-              title="Licencias"
-              items={agent.licencias}
-              onClose={() => setOpenLicencias(false)}
-            />
-          ) : null}
+              <RevistaPanel
+                agent={agent}
+                canManage={canManageAgents}
+                onRefreshProfile={loadFullProfile}
+              />
 
-          {openAusentes && agent ? (
-            <AttendanceModal
-              title="Ausentes injustificados"
-              items={agent.ausentes}
-              onClose={() => setOpenAusentes(false)}
-            />
+              <AttendanceGrid
+                source={{ kind: 'agent', agentId: agent.id }}
+                canManage={canManageAgents}
+              />
+            </>
           ) : null}
 
           {isEditOpen ? (
@@ -563,6 +474,52 @@ export default function DocenteDetallePage() {
                     />
                   </FormField>
 
+                  <FormField label="Sexo">
+                    <select
+                      value={form.sex}
+                      onChange={(e) => updateForm('sex', e.target.value)}
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    >
+                      <option value="">-</option>
+                      <option value="F">Femenino</option>
+                      <option value="M">Masculino</option>
+                      <option value="X">Otro</option>
+                    </select>
+                  </FormField>
+
+                  <FormField label="Estado civil">
+                    <select
+                      value={form.marital_status}
+                      onChange={(e) => updateForm('marital_status', e.target.value)}
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    >
+                      <option value="">-</option>
+                      <option value="SOLTERO/A">Soltero/a</option>
+                      <option value="CASADO/A">Casado/a</option>
+                      <option value="DIVORCIADO/A">Divorciado/a</option>
+                      <option value="VIUDO/A">Viudo/a</option>
+                      <option value="UNION CIVIL">Unión civil</option>
+                    </select>
+                  </FormField>
+
+                  <FormField label="Lugar de nacimiento">
+                    <input
+                      type="text"
+                      value={form.birth_place}
+                      onChange={(e) => updateForm('birth_place', e.target.value)}
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    />
+                  </FormField>
+
+                  <FormField label="Nacionalidad">
+                    <input
+                      type="text"
+                      value={form.nationality}
+                      onChange={(e) => updateForm('nationality', e.target.value)}
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    />
+                  </FormField>
+
                   <FormField label="Email" error={formErrors.email}>
                     <input
                       type="email"
@@ -603,9 +560,7 @@ export default function DocenteDetallePage() {
                     <input
                       type="text"
                       value={form.board_file_number}
-                      onChange={(e) =>
-                        updateForm('board_file_number', e.target.value)
-                      }
+                      onChange={(e) => updateForm('board_file_number', e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
@@ -614,9 +569,7 @@ export default function DocenteDetallePage() {
                     <input
                       type="text"
                       value={form.secondary_board_number}
-                      onChange={(e) =>
-                        updateForm('secondary_board_number', e.target.value)
-                      }
+                      onChange={(e) => updateForm('secondary_board_number', e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
@@ -625,9 +578,7 @@ export default function DocenteDetallePage() {
                     <input
                       type="date"
                       value={form.school_entry_date}
-                      onChange={(e) =>
-                        updateForm('school_entry_date', e.target.value)
-                      }
+                      onChange={(e) => updateForm('school_entry_date', e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
@@ -636,9 +587,7 @@ export default function DocenteDetallePage() {
                     <input
                       type="date"
                       value={form.teaching_entry_date}
-                      onChange={(e) =>
-                        updateForm('teaching_entry_date', e.target.value)
-                      }
+                      onChange={(e) => updateForm('teaching_entry_date', e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>
@@ -656,9 +605,7 @@ export default function DocenteDetallePage() {
                     <input
                       type="text"
                       value={form.identity_card_number}
-                      onChange={(e) =>
-                        updateForm('identity_card_number', e.target.value)
-                      }
+                      onChange={(e) => updateForm('identity_card_number', e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </FormField>

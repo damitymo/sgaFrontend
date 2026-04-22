@@ -4,10 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { AppHeader } from '@/components/app-header';
 import { ProtectedPage } from '@/components/protected-page';
-import {
-  DocenteDatosPanel,
-  type AgentProfile,
-} from '@/components/docente-datos-panel';
+import { type AgentProfile } from '@/components/docente-datos-panel';
+import { LegajoPanel } from '@/components/legajo-panel';
+import { RevistaPanel } from '@/components/revista-panel';
+import { AttendanceGrid } from '@/components/attendance-grid';
 
 type AuthUser = {
   id: number;
@@ -24,9 +24,6 @@ export default function MiPerfilPage() {
   const [agent, setAgent] = useState<AgentProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
-
-const [, setOpenLicencias] = useState(false);
-const [, setOpenAusentes] = useState(false);
 
   const loadProfile = useCallback(async () => {
     try {
@@ -86,6 +83,9 @@ const [, setOpenAusentes] = useState(false);
     );
   }
 
+  // En /mi-perfil el agente nunca puede gestionar su propia revista.
+  const canManage = false;
+
   return (
     <ProtectedPage>
       <main className="min-h-screen bg-slate-100 dark:bg-slate-950">
@@ -100,7 +100,7 @@ const [, setOpenAusentes] = useState(false);
               {user?.full_name || 'Usuario'}
             </h2>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-              Información personal y situación de revista.
+              Información personal, situación de revista y libro de asistencia individual.
             </p>
           </div>
 
@@ -111,12 +111,17 @@ const [, setOpenAusentes] = useState(false);
           ) : null}
 
           {agent ? (
-            <DocenteDatosPanel
-              agent={agent}
-              onOpenLicencias={() => setOpenLicencias(true)}
-              onOpenAusentes={() => setOpenAusentes(true)}
-              onRefreshProfile={loadProfile}
-            />
+            <>
+              <LegajoPanel agent={agent} />
+
+              <RevistaPanel
+                agent={agent}
+                canManage={canManage}
+                onRefreshProfile={loadProfile}
+              />
+
+              <AttendanceGrid source={{ kind: 'me' }} canManage={canManage} />
+            </>
           ) : null}
         </section>
       </main>
