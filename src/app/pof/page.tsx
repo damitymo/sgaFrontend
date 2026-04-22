@@ -6,6 +6,18 @@ import { api } from '@/lib/api';
 import { AppHeader } from '@/components/app-header';
 import { ProtectedPage } from '@/components/protected-page';
 
+type Holder = {
+  assignment_id?: number | null;
+  agent_id?: number | null;
+  full_name?: string | null;
+  dni?: string | null;
+  movement_type?: string | null;
+  character_type?: string | null;
+  assignment_date?: string | null;
+  end_date?: string | null;
+  status?: string | null;
+};
+
 type PofItem = {
   id: number;
   plaza_number?: string | null;
@@ -20,15 +32,9 @@ type PofItem = {
   vacancy_status?: string | null;
   legal_norm?: string | null;
   notes?: string | null;
-  current_holder?: {
-    assignment_id?: number | null;
-    agent_id?: number | null;
-    full_name?: string | null;
-    dni?: string | null;
-    movement_type?: string | null;
-    assignment_date?: string | null;
-    status?: string | null;
-  } | null;
+  current_holder?: Holder | null;
+  covered_titular?: Holder | null;
+  previous_holder?: Holder | null;
 };
 
 type PofHistoryItem = {
@@ -1131,6 +1137,70 @@ function FragmentRow({
                 <span className="font-semibold">Observaciones:</span> {item.notes || '-'}
               </p>
             </div>
+
+            {item.covered_titular ? (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/60 dark:bg-amber-950/40 print:mt-2 print:border-amber-300 print:bg-transparent">
+                <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300 print:text-[9px]">
+                  Titular cubierto
+                </p>
+                <div className="grid grid-cols-1 gap-1 text-xs text-slate-700 dark:text-slate-200 md:grid-cols-2 xl:grid-cols-3 print:text-[9px]">
+                  <p>
+                    <span className="font-semibold">Docente:</span>{' '}
+                    {item.covered_titular.full_name || '-'}
+                  </p>
+                  <p>
+                    <span className="font-semibold">DNI:</span>{' '}
+                    {item.covered_titular.dni || '-'}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Carácter:</span>{' '}
+                    {item.covered_titular.character_type || '-'}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Desde:</span>{' '}
+                    {formatDate(item.covered_titular.assignment_date)}
+                  </p>
+                </div>
+                <p className="mt-1 text-[11px] italic text-amber-800/80 dark:text-amber-300/80 print:text-[9px]">
+                  Actualmente con licencia. El titular sigue en la plaza pero
+                  está siendo reemplazado por el suplente.
+                </p>
+              </div>
+            ) : null}
+
+            {item.previous_holder ? (
+              <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900 print:mt-2 print:border-slate-300 print:bg-transparent">
+                <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300 print:text-[9px]">
+                  Docente anterior
+                </p>
+                <div className="grid grid-cols-1 gap-1 text-xs text-slate-700 dark:text-slate-200 md:grid-cols-2 xl:grid-cols-3 print:text-[9px]">
+                  <p>
+                    <span className="font-semibold">Docente:</span>{' '}
+                    {item.previous_holder.full_name || '-'}
+                  </p>
+                  <p>
+                    <span className="font-semibold">DNI:</span>{' '}
+                    {item.previous_holder.dni || '-'}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Carácter:</span>{' '}
+                    {item.previous_holder.character_type || '-'}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Desde:</span>{' '}
+                    {formatDate(item.previous_holder.assignment_date)}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Hasta:</span>{' '}
+                    {formatDate(item.previous_holder.end_date)}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Estado:</span>{' '}
+                    {item.previous_holder.status || '-'}
+                  </p>
+                </div>
+              </div>
+            ) : null}
           </td>
         </tr>
       ) : null}
