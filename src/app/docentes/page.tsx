@@ -39,7 +39,9 @@ export default function DocentesPage() {
   const [message, setMessage] = useState('');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  const handleSearch = async () => {
+  const handleSearch = async (event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+
     try {
       setLoading(true);
       setMessage('');
@@ -106,7 +108,10 @@ export default function DocentesPage() {
             </p>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <form
+            onSubmit={handleSearch}
+            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+          >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -169,8 +174,7 @@ export default function DocentesPage() {
 
             <div className="mt-4 flex flex-wrap gap-3">
               <button
-                type="button"
-                onClick={handleSearch}
+                type="submit"
                 disabled={loading}
                 className="rounded-2xl bg-slate-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600"
               >
@@ -183,7 +187,7 @@ export default function DocentesPage() {
                 {message}
               </p>
             ) : null}
-          </div>
+          </form>
 
           {results.length > 0 ? (
             <div className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { api } from '@/lib/api';
+import { useEscapeKey } from '@/lib/use-escape-key';
 
 type Props = {
   agentId: number;
@@ -107,6 +108,10 @@ export function AssignmentModal({
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
 
+  useEscapeKey(() => {
+    if (!saving) onClose();
+  });
+
   const title = useMemo(
     () =>
       movementType === 'DESIGNACION'
@@ -184,7 +189,12 @@ export function AssignmentModal({
 
   return (
     <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/50 p-4 print:hidden">
-      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+      <div
+        data-modal-root
+        role="dialog"
+        aria-modal="true"
+        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900"
+      >
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
@@ -316,6 +326,7 @@ export function AssignmentModal({
         <div className="mt-6 flex flex-wrap gap-3">
           <button
             type="button"
+            data-modal-submit
             onClick={handleSubmit}
             disabled={saving}
             className="rounded-2xl bg-slate-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60"

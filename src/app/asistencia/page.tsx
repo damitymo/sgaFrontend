@@ -70,7 +70,8 @@ export default function AsistenciaPage() {
     setRecords(response.data as AttendanceItem[]);
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
     try {
       setLoading(true);
       setMessage('');
@@ -100,7 +101,9 @@ export default function AsistenciaPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = async () => {
+  const handleSave = async (event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+
     if (!agent) {
       setMessage('Primero buscá un docente.');
       return;
@@ -155,7 +158,10 @@ export default function AsistenciaPage() {
             </p>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:border-slate-800 dark:bg-slate-900">
+          <form
+            onSubmit={handleSearch}
+            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:border-slate-800 dark:bg-slate-900"
+          >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[320px_auto] md:items-end">
               <div className="flex flex-col">
                 <label className="mb-1 text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -171,7 +177,7 @@ export default function AsistenciaPage() {
               </div>
 
               <button
-                onClick={handleSearch}
+                type="submit"
                 className="rounded-xl bg-slate-800 px-4 py-2 font-medium text-white hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600"
               >
                 Buscar
@@ -180,12 +186,15 @@ export default function AsistenciaPage() {
 
             {loading && <p className="text-slate-600 dark:text-slate-300">Buscando...</p>}
             {message && <p className="text-sm text-slate-700 dark:text-slate-200">{message}</p>}
-          </div>
+          </form>
 
           {agent && (
             <>
               {canManageSystem() && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:border-slate-800 dark:bg-slate-900">
+                <form
+                  onSubmit={handleSave}
+                  className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:border-slate-800 dark:bg-slate-900"
+                >
                   <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
                     Cargar registro de asistencia
                   </h3>
@@ -310,14 +319,14 @@ export default function AsistenciaPage() {
 
                   <div className="flex gap-3">
                     <button
-                      onClick={handleSave}
+                      type="submit"
                       disabled={saving}
                       className="rounded-xl bg-slate-800 px-5 py-2 font-medium text-white hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600"
                     >
                       {saving ? 'Guardando...' : 'Guardar registro'}
                     </button>
                   </div>
-                </div>
+                </form>
               )}
 
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:border-slate-800 dark:bg-slate-900">

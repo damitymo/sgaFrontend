@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { AppHeader } from '@/components/app-header';
 import { ProtectedPage } from '@/components/protected-page';
+import { useEscapeKey } from '@/lib/use-escape-key';
 
 type Holder = {
   assignment_id?: number | null;
@@ -421,6 +422,15 @@ export default function PofPage() {
     setEditingItem(null);
   };
 
+  // Esc cierra el modal abierto (edit primero, luego historial)
+  useEscapeKey(() => {
+    if (editingItem) {
+      closeEditModal();
+    } else if (historyItem) {
+      setHistoryItem(null);
+    }
+  }, Boolean(editingItem || historyItem));
+
   const updateEditForm = (field: keyof EditForm, value: string) => {
     setEditForm((prev) => ({
       ...prev,
@@ -748,7 +758,12 @@ export default function PofPage() {
 
           {editingItem ? (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 dark:bg-black/60 print:hidden">
-              <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+              <div
+                data-modal-root
+                role="dialog"
+                aria-modal="true"
+                className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900"
+              >
                 <div className="mb-5 flex items-center justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
@@ -863,6 +878,7 @@ export default function PofPage() {
                 <div className="mt-6 flex gap-3">
                   <button
                     type="button"
+                    data-modal-submit
                     onClick={handleSaveEdit}
                     disabled={savingEdit}
                     className="rounded-2xl bg-slate-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600"
@@ -884,7 +900,12 @@ export default function PofPage() {
 
           {historyItem ? (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 dark:bg-black/60 print:hidden">
-              <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+              <div
+                data-modal-root
+                role="dialog"
+                aria-modal="true"
+                className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900"
+              >
                 <div className="mb-5 flex items-center justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">

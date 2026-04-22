@@ -1,30 +1,141 @@
 @import "tailwindcss";
 
-/* 🌞 Modo claro por defecto */
+/* Tailwind v4: habilitamos la variante `dark:` basada en la clase `.dark`
+   (por defecto v4 mira prefers-color-scheme). Sin esto el toggle de tema
+   no activa ninguna clase `dark:...`. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ────────────── TOKENS ──────────────
+   Las variables viven en el root y se redefinen dentro de .dark.
+   Los componentes usan clases Tailwind (dark:bg-..., etc.) pero body,
+   scrollbars y selección toman estas variables para quedar coherentes
+   sin tener que tocar cada página. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --sga-bg:            #f1f5f9;  /* slate-100 */
+  --sga-surface:       #ffffff;
+  --sga-surface-muted: #f8fafc;  /* slate-50 */
+  --sga-text:          #0f172a;  /* slate-900 */
+  --sga-text-muted:    #475569;  /* slate-600 */
+  --sga-border:        #e2e8f0;  /* slate-200 */
+  --sga-accent:        #4f46e5;  /* indigo-600 */
+  --sga-accent-soft:   #eef2ff;  /* indigo-50 */
+  --sga-selection-bg:  #c7d2fe;  /* indigo-200 */
+  --sga-selection-fg:  #1e1b4b;  /* indigo-950 */
+  --sga-font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --sga-font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
-/* 🌙 Modo oscuro */
 html.dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --sga-bg:            #020617;  /* slate-950 */
+  --sga-surface:       #0f172a;  /* slate-900 */
+  --sga-surface-muted: #1e293b;  /* slate-800 */
+  --sga-text:          #e2e8f0;  /* slate-200 */
+  --sga-text-muted:    #94a3b8;  /* slate-400 */
+  --sga-border:        #1e293b;  /* slate-800 */
+  --sga-accent:        #818cf8;  /* indigo-400 */
+  --sga-accent-soft:   #1e1b4b;  /* indigo-950 */
+  --sga-selection-bg:  #4338ca;  /* indigo-700 */
+  --sga-selection-fg:  #e0e7ff;  /* indigo-100 */
+  /* Fuente levemente más fina / serifa ligera para diferenciar el dark */
+  --sga-font-sans:
+    "Inter", "SF Pro Text", system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Aplicación global */
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  min-height: 100vh;
-}
-
-/* Para que navegadores adapten scrollbars y UI */
+/* Aplicación global + transición suave entre temas */
 html {
   color-scheme: light;
 }
 
 html.dark {
   color-scheme: dark;
+}
+
+body {
+  background: var(--sga-bg);
+  color: var(--sga-text);
+  font-family: var(--sga-font-sans);
+  font-feature-settings: "cv11", "ss01", "ss03";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+code, pre, kbd, samp {
+  font-family: var(--sga-font-mono);
+}
+
+/* Selección de texto coherente con el tema */
+::selection {
+  background: var(--sga-selection-bg);
+  color: var(--sga-selection-fg);
+}
+
+/* Scrollbar con colores del tema (WebKit) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--sga-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--sga-border);
+  border-radius: 8px;
+  border: 2px solid var(--sga-bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sga-text-muted);
+}
+
+/* Scrollbar Firefox */
+html {
+  scrollbar-color: var(--sga-border) var(--sga-bg);
+  scrollbar-width: thin;
+}
+
+/* Transiciones suaves de color en superficies comunes */
+main,
+section,
+header,
+aside,
+article,
+nav,
+div,
+button,
+input,
+select,
+textarea,
+a {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 0.15s;
+  transition-timing-function: ease;
+}
+
+/* Placeholder con el color correcto por tema */
+input::placeholder,
+textarea::placeholder {
+  color: var(--sga-text-muted);
+  opacity: 0.7;
+}
+
+/* Focus ring uniforme */
+:where(
+  input,
+  select,
+  textarea,
+  button,
+  a,
+  [tabindex]
+):focus-visible {
+  outline: 2px solid var(--sga-accent);
+  outline-offset: 2px;
+  border-radius: 6px;
 }

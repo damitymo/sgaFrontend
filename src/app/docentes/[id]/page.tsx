@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { AppHeader } from '@/components/app-header';
 import { ProtectedPage } from '@/components/protected-page';
 import { type AgentProfile } from '@/components/docente-datos-panel';
+import { useEscapeKey } from '@/lib/use-escape-key';
 import { LegajoPanel } from '@/components/legajo-panel';
 import { RevistaPanel } from '@/components/revista-panel';
 import { AttendanceGrid } from '@/components/attendance-grid';
@@ -255,6 +256,8 @@ export default function DocenteDetallePage() {
     setFormErrors({});
   };
 
+  useEscapeKey(() => closeModals(), isEditOpen);
+
   const handleUpdate = async () => {
     if (!agent) return;
 
@@ -408,7 +411,12 @@ export default function DocenteDetallePage() {
 
           {isEditOpen ? (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:hidden">
-              <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+              <div
+                data-modal-root
+                role="dialog"
+                aria-modal="true"
+                className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900"
+              >
                 <div className="mb-5 flex items-center justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
@@ -614,6 +622,7 @@ export default function DocenteDetallePage() {
                 <div className="mt-6 flex flex-wrap gap-3">
                   <button
                     type="button"
+                    data-modal-submit
                     onClick={handleUpdate}
                     disabled={savingForm}
                     className="rounded-2xl bg-slate-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
