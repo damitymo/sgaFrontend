@@ -52,6 +52,7 @@ export type AssignmentItem = {
   end_date?: string | null;
   legal_norm_type?: string | null;
   legal_norm_number?: string | null;
+  status?: string | null;
   is_active?: boolean;
   notes?: string | null;
   pof_position?: {

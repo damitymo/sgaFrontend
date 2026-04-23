@@ -122,7 +122,7 @@ export default function MiPerfilPage() {
               />
 
               {(agent.assignments ?? [])
-                .filter((a) => a.is_active && a.id)
+                .filter((a) => a.id && (a.status === 'ACTIVA' || a.is_active))
                 .map((a) => (
                   <ClassScheduleEditor
                     key={a.id}
