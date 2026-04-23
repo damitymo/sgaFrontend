@@ -365,6 +365,27 @@ export default function DocenteDetallePage() {
                 Imprimir ficha
               </button>
 
+              {agent ? (
+                <>
+                  <a
+                    href={`/docentes/${agent.id}/planilla-revista?tipo=actual`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                  >
+                    Imprimir revista actual
+                  </a>
+                  <a
+                    href={`/docentes/${agent.id}/planilla-revista?tipo=historica`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                  >
+                    Imprimir revista histórica
+                  </a>
+                </>
+              ) : null}
+
               {canManageAgents && agent ? (
                 <>
                   <button

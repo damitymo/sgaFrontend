@@ -103,6 +103,27 @@ export default function MiPerfilPage() {
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
               Información personal, situación de revista y libro de asistencia individual.
             </p>
+
+            {agent ? (
+              <div className="mt-4 flex flex-wrap gap-3">
+                <a
+                  href="/mi-perfil/planilla-revista?tipo=actual"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-2xl border border-slate-300 bg-white px-5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                >
+                  Imprimir revista actual
+                </a>
+                <a
+                  href="/mi-perfil/planilla-revista?tipo=historica"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-2xl border border-slate-300 bg-white px-5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                >
+                  Imprimir revista histórica
+                </a>
+              </div>
+            ) : null}
           </div>
 
           {message ? (
