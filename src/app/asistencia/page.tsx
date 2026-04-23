@@ -345,10 +345,30 @@ export default function AsistenciaPage() {
                   </p>
                 </div>
 
-                {!records.length ? (
-                  <p className="text-slate-600 dark:text-slate-300">No hay registros cargados.</p>
-                ) : (
-                  <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
+                {(() => {
+                  const visibleRecords = records.filter(
+                    (r) =>
+                      r.status !== 'PRESENTE' &&
+                      (r.raw_code ?? '').trim().toUpperCase() !== 'P',
+                  );
+                  const hiddenCount = records.length - visibleRecords.length;
+
+                  return !visibleRecords.length ? (
+                    <p className="text-slate-600 dark:text-slate-300">
+                      No hay ausencias ni licencias cargadas.
+                      {hiddenCount > 0
+                        ? ` (${hiddenCount} presente${hiddenCount === 1 ? '' : 's'} oculto${hiddenCount === 1 ? '' : 's'})`
+                        : ''}
+                    </p>
+                  ) : (
+                  <div className="space-y-3">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Mostrando solo ausencias, licencias y paros. Los presentes no se listan.
+                      {hiddenCount > 0
+                        ? ` (${hiddenCount} presente${hiddenCount === 1 ? '' : 's'} oculto${hiddenCount === 1 ? '' : 's'})`
+                        : ''}
+                    </p>
+                    <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
                     <table className="min-w-full border-collapse">
                       <thead>
                         <tr className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
@@ -362,7 +382,7 @@ export default function AsistenciaPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {records.map((item) => (
+                        {visibleRecords.map((item) => (
                           <tr key={item.id} className="bg-white text-slate-700 dark:bg-slate-900 dark:text-slate-200">
                             <td className="border border-slate-200 px-3 py-2 dark:border-slate-700">
                               {formatDate(item.attendance_date)}
@@ -387,8 +407,10 @@ export default function AsistenciaPage() {
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   </div>
-                )}
+                  );
+                })()}
               </div>
             </>
           )}

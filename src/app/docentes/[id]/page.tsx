@@ -10,6 +10,7 @@ import { useEscapeKey } from '@/lib/use-escape-key';
 import { LegajoPanel } from '@/components/legajo-panel';
 import { RevistaPanel } from '@/components/revista-panel';
 import { AttendanceGrid } from '@/components/attendance-grid';
+import { ClassScheduleEditor } from '@/components/class-schedule-editor';
 
 type AuthUser = {
   id: number;
@@ -401,6 +402,31 @@ export default function DocenteDetallePage() {
                 canManage={canManageAgents}
                 onRefreshProfile={loadFullProfile}
               />
+
+              {(agent.assignments ?? [])
+                .filter((a) => a.is_active && a.id)
+                .map((a) => (
+                  <ClassScheduleEditor
+                    key={a.id}
+                    assignmentId={a.id as number}
+                    year={new Date().getFullYear()}
+                    title={
+                      a.pof_position?.subject_name
+                        ? `${a.pof_position.subject_name}${
+                            a.pof_position.course
+                              ? ` · ${a.pof_position.course}${
+                                  a.pof_position.division
+                                    ? ' ' + a.pof_position.division
+                                    : ''
+                                }`
+                              : ''
+                          }`
+                        : 'Horario de clase'
+                    }
+                    shiftLabel={a.pof_position?.shift ?? undefined}
+                    readOnly={!canManageAgents}
+                  />
+                ))}
 
               <AttendanceGrid
                 source={{ kind: 'agent', agentId: agent.id }}
