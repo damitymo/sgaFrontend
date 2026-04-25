@@ -219,10 +219,6 @@ export default function DocenteDetallePage() {
     }));
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const openEditModal = () => {
     if (!agent) return;
 
@@ -357,14 +353,6 @@ export default function DocenteDetallePage() {
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm print:hidden dark:border-slate-800 dark:bg-slate-900">
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={handlePrint}
-                className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
-              >
-                Imprimir ficha
-              </button>
-
               {agent ? (
                 <>
                   <a
