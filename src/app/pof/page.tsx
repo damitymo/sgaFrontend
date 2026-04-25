@@ -1051,7 +1051,11 @@ function FragmentRow({
             {' | '}
             <span>DNI {holderDni(item)}</span>
             {' | '}
-            <span>{item.revista_status || '-'}</span>
+            <span>
+              {item.current_holder?.character_type ||
+                item.revista_status ||
+                '-'}
+            </span>
           </div>
         </td>
 
@@ -1142,14 +1146,24 @@ function FragmentRow({
                 <span className="font-semibold">Turno:</span> {shiftLabel(item.shift)}
               </p>
               <p>
-                <span className="font-semibold">Carácter:</span> {item.revista_status || '-'}
+                <span className="font-semibold">Carácter:</span>{' '}
+                {item.current_holder?.character_type || item.revista_status || '-'}
               </p>
               <p>
-                <span className="font-semibold">Desde:</span> {formatDate(item.start_date)}
+                <span className="font-semibold">Desde:</span>{' '}
+                {item.current_holder
+                  ? formatDate(item.current_holder.assignment_date)
+                  : formatDate(item.start_date)}
               </p>
               <p>
                 <span className="font-semibold">Hasta:</span>{' '}
-                {item.end_date ? formatDate(item.end_date) : 'CONTINUA'}
+                {item.current_holder
+                  ? item.current_holder.end_date
+                    ? formatDate(item.current_holder.end_date)
+                    : 'CONTINUA'
+                  : item.end_date
+                  ? formatDate(item.end_date)
+                  : 'CONTINUA'}
               </p>
               <p>
                 <span className="font-semibold">Norma legal:</span> {item.legal_norm || '-'}
