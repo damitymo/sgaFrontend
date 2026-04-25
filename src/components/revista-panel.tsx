@@ -64,40 +64,61 @@ function RevistaTable({ items, emptyText }: { items: RevistaItem[]; emptyText: s
           </tr>
         </thead>
         <tbody>
-          {items.map((item, index) => (
-            <tr key={item.id ?? index}>
-              <td className="border border-slate-300 px-2 py-2 print:px-1 print:py-1 dark:border-slate-700">
-                {fieldValue(item.pof_position?.plaza_number)}
-              </td>
-              <td className="border border-slate-300 px-2 py-2 print:px-1 print:py-1 dark:border-slate-700">
-                {fieldValue(item.pof_position?.subject_name)}
-              </td>
-              <td className="border border-slate-300 px-2 py-2 text-center print:px-1 print:py-1 dark:border-slate-700">
-                {fieldValue(item.pof_position?.hours_count)}
-              </td>
-              <td className="border border-slate-300 px-2 py-2 text-center print:px-1 print:py-1 dark:border-slate-700">
-                {fieldValue(item.pof_position?.course)}
-              </td>
-              <td className="border border-slate-300 px-2 py-2 text-center print:px-1 print:py-1 dark:border-slate-700">
-                {fieldValue(item.pof_position?.division)}
-              </td>
-              <td className="border border-slate-300 px-2 py-2 text-center print:px-1 print:py-1 dark:border-slate-700">
-                {shiftLabel(item.pof_position?.shift)}
-              </td>
-              <td className="border border-slate-300 px-2 py-2 text-center print:px-1 print:py-1 dark:border-slate-700">
-                {fieldValue(item.character_type)}
-              </td>
-              <td className="border border-slate-300 px-2 py-2 text-center print:px-1 print:py-1 dark:border-slate-700">
-                {formatDate(item.start_date)}
-              </td>
-              <td className="border border-slate-300 px-2 py-2 text-center print:px-1 print:py-1 dark:border-slate-700">
-                {formatDate(item.end_date)}
-              </td>
-              <td className="border border-slate-300 px-2 py-2 print:px-1 print:py-1 dark:border-slate-700">
-                {fieldValue(item.legal_norm)}
-              </td>
-            </tr>
-          ))}
+          {items.map((item, index) => {
+            // Cuando la designación viene del endpoint /api/Designacion del MEC
+            // no tiene plaza vinculada. Mostramos el número de FD en la columna
+            // asignatura/cargo y un fondo distinto para distinguirla.
+            const sinPlaza = !item.pof_position;
+            const labelAsignatura = sinPlaza
+              ? item.resolution_number
+                ? `Designación · ${item.resolution_number}`
+                : 'Designación (sin plaza vinculada)'
+              : fieldValue(item.pof_position?.subject_name);
+
+            return (
+              <tr
+                key={item.id ?? index}
+                className={
+                  sinPlaza
+                    ? 'bg-slate-50/60 italic dark:bg-slate-800/40'
+                    : ''
+                }
+              >
+                <td className="border border-slate-300 px-2 py-2 print:px-1 print:py-1 dark:border-slate-700">
+                  {sinPlaza
+                    ? 'S/P'
+                    : fieldValue(item.pof_position?.plaza_number)}
+                </td>
+                <td className="border border-slate-300 px-2 py-2 print:px-1 print:py-1 dark:border-slate-700">
+                  {labelAsignatura}
+                </td>
+                <td className="border border-slate-300 px-2 py-2 text-center print:px-1 print:py-1 dark:border-slate-700">
+                  {fieldValue(item.pof_position?.hours_count)}
+                </td>
+                <td className="border border-slate-300 px-2 py-2 text-center print:px-1 print:py-1 dark:border-slate-700">
+                  {fieldValue(item.pof_position?.course)}
+                </td>
+                <td className="border border-slate-300 px-2 py-2 text-center print:px-1 print:py-1 dark:border-slate-700">
+                  {fieldValue(item.pof_position?.division)}
+                </td>
+                <td className="border border-slate-300 px-2 py-2 text-center print:px-1 print:py-1 dark:border-slate-700">
+                  {shiftLabel(item.pof_position?.shift)}
+                </td>
+                <td className="border border-slate-300 px-2 py-2 text-center print:px-1 print:py-1 dark:border-slate-700">
+                  {fieldValue(item.character_type)}
+                </td>
+                <td className="border border-slate-300 px-2 py-2 text-center print:px-1 print:py-1 dark:border-slate-700">
+                  {formatDate(item.start_date)}
+                </td>
+                <td className="border border-slate-300 px-2 py-2 text-center print:px-1 print:py-1 dark:border-slate-700">
+                  {formatDate(item.end_date)}
+                </td>
+                <td className="border border-slate-300 px-2 py-2 print:px-1 print:py-1 dark:border-slate-700">
+                  {fieldValue(item.legal_norm)}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

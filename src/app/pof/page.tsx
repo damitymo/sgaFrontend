@@ -23,6 +23,7 @@ type PofItem = {
   id: number;
   plaza_number?: string | null;
   subject_name?: string | null;
+  modality?: string | null;
   hours_count?: number | null;
   course?: string | null;
   division?: string | null;
@@ -37,6 +38,19 @@ type PofItem = {
   covered_titular?: Holder | null;
   previous_holder?: Holder | null;
 };
+
+/**
+ * Etiqueta de "cargo / asignatura" para mostrar en las filas.
+ * Algunas plazas (Jefe de Departamento, Jefe de Sección, Rector, etc.)
+ * no tienen asignatura — solo cargo (`modality`). En ese caso usamos
+ * el cargo como label. Si hay ambos, los concatenamos: "CARGO | ASIGNATURA".
+ */
+function plazaLabel(item: PofItem): string {
+  const cargo = (item.modality || '').trim();
+  const asig = (item.subject_name || '').trim();
+  if (cargo && asig) return `${cargo} | ${asig}`;
+  return cargo || asig || '-';
+}
 
 type PofHistoryItem = {
   id: number;
@@ -181,7 +195,7 @@ function printSinglePof(item: PofItem) {
           <div class="grid">
             <div><div class="label">Plaza</div><div class="value">${item.plaza_number ?? '-'}</div></div>
             <div><div class="label">Turno</div><div class="value">${shiftLabel(item.shift)}</div></div>
-            <div><div class="label">Asignatura / Cargo</div><div class="value">${item.subject_name ?? '-'}</div></div>
+            <div><div class="label">Asignatura / Cargo</div><div class="value">${plazaLabel(item)}</div></div>
             <div><div class="label">Carácter</div><div class="value">${item.revista_status ?? '-'}</div></div>
             <div><div class="label">Horas</div><div class="value">${item.hours_count ?? '-'}</div></div>
             <div><div class="label">Curso</div><div class="value">${item.course ?? '-'}</div></div>
@@ -1041,7 +1055,7 @@ function FragmentRow({
 
         <td className="border border-slate-200 px-2 py-2 align-top dark:border-slate-700 print:px-1 print:py-1">
           <p className="text-sm font-semibold uppercase text-slate-700 dark:text-slate-100 print:text-[10px]">
-            {item.subject_name || '-'}
+            {plazaLabel(item)}
           </p>
 
           <div className="mt-1 text-xs text-slate-600 dark:text-slate-300 print:text-[9px]">
@@ -1125,7 +1139,8 @@ function FragmentRow({
                 <span className="font-semibold">Plaza:</span> {item.plaza_number || '-'}
               </p>
               <p>
-                <span className="font-semibold">Asignatura:</span> {item.subject_name || '-'}
+                <span className="font-semibold">Cargo / Asignatura:</span>{' '}
+                {plazaLabel(item)}
               </p>
               <p>
                 <span className="font-semibold">Docente actual:</span> {holderText(item)}
