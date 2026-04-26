@@ -197,13 +197,26 @@ export function PlanillaRevistaPrint({
               </td>
             </tr>
           ) : (
-            items.map((it, idx) => (
+            items.map((it, idx) => {
+              // Mismo fallback que en la pantalla: si no hay asignatura,
+              // usamos modality (cargo). Si tiene ambos, los concatenamos.
+              const subj = (it.pof_position?.subject_name || '').trim();
+              const cargo = (it.pof_position?.modality || '').trim();
+              const cargoAsig =
+                subj && cargo ? `${cargo} | ${subj}` : subj || cargo || '';
+              const sinPlaza = !it.pof_position;
+              const labelCelda = sinPlaza
+                ? it.resolution_number
+                  ? `Designación · ${it.resolution_number}`
+                  : 'Designación'
+                : cargoAsig;
+              return (
               <tr key={it.id ?? idx}>
                 <td className="border border-slate-900 px-1 py-1 text-center">
-                  {fv(it.pof_position?.plaza_number)}
+                  {sinPlaza ? 'S/P' : fv(it.pof_position?.plaza_number)}
                 </td>
                 <td className="border border-slate-900 px-1 py-1">
-                  {fv(it.pof_position?.subject_name)}
+                  {labelCelda || fv(null)}
                 </td>
                 <td className="border border-slate-900 px-1 py-1 text-center">
                   {fv(it.pof_position?.hours_count)}
@@ -233,7 +246,8 @@ export function PlanillaRevistaPrint({
                   {fv(it.notes)}
                 </td>
               </tr>
-            ))
+              );
+            })
           )}
         </tbody>
       </table>
