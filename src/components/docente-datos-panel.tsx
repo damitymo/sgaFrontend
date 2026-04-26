@@ -23,6 +23,7 @@ export type RevistaItem = {
   pof_position?: {
     plaza_number?: string | null;
     subject_name?: string | null;
+    modality?: string | null;
     hours_count?: number | null;
     course?: string | null;
     division?: string | null;

@@ -69,11 +69,20 @@ function RevistaTable({ items, emptyText }: { items: RevistaItem[]; emptyText: s
             // no tiene plaza vinculada. Mostramos el número de FD en la columna
             // asignatura/cargo y un fondo distinto para distinguirla.
             const sinPlaza = !item.pof_position;
+            // Para plazas con plaza, el label es: Asignatura | Cargo (modality).
+            // Algunas plazas (Jefe de Departamento, Rector, etc.) no tienen
+            // asignatura — ahí solo va el cargo.
+            const subjectName = item.pof_position?.subject_name?.trim();
+            const cargo = item.pof_position?.modality?.trim();
+            const cargoAsig =
+              subjectName && cargo
+                ? `${cargo} | ${subjectName}`
+                : subjectName || cargo || '-';
             const labelAsignatura = sinPlaza
               ? item.resolution_number
                 ? `Designación · ${item.resolution_number}`
                 : 'Designación (sin plaza vinculada)'
-              : fieldValue(item.pof_position?.subject_name);
+              : cargoAsig;
 
             return (
               <tr
