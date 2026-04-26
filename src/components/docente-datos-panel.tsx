@@ -22,6 +22,7 @@ export type RevistaItem = {
   notes?: string | null;
   pof_position?: {
     plaza_number?: string | null;
+    establecimiento_cue?: string | null;
     subject_name?: string | null;
     modality?: string | null;
     hours_count?: number | null;
