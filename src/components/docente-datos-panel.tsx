@@ -20,6 +20,14 @@ export type RevistaItem = {
   legal_norm?: string | null;
   resolution_number?: string | null;
   notes?: string | null;
+  // Campos espejo del MEC (Prestación)
+  escalafon?: string | null;
+  categoria?: string | null;
+  cargo_codigo?: string | null;
+  cargo_descripcion?: string | null;
+  motivo_ingreso?: string | null;
+  motivo_egreso?: string | null;
+  puesto_laboral?: number | null;
   pof_position?: {
     plaza_number?: string | null;
     establecimiento_cue?: string | null;
@@ -29,6 +37,8 @@ export type RevistaItem = {
     course?: string | null;
     division?: string | null;
     shift?: string | null;
+    sub_organizacion?: string | null;
+    tipo_plaza_estado?: string | null;
   } | null;
 };
 

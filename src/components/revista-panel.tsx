@@ -37,6 +37,136 @@ function shiftLabel(value?: string | null) {
   return value;
 }
 
+function subOrgLabel(mnemo?: string | null) {
+  if (!mnemo) return null;
+  const m = mnemo.toUpperCase().trim();
+  const map: Record<string, string> = {
+    NC: 'NIVEL CENTRAL',
+    SE: 'SECUNDARIO',
+    PR: 'PRIMARIO',
+    SEREDU: 'SECUNDARIO EDUC.',
+  };
+  return map[m] ?? m;
+}
+
+/**
+ * Card detallada de una designación, estilo "Detalle Plaza" del MEC.
+ * Muestra todos los campos espejo importados desde gestión.
+ */
+function RevistaDetalleCard({ item }: { item: RevistaItem }) {
+  const sinPlaza = !item.pof_position;
+  const cargoTexto =
+    item.cargo_descripcion ||
+    item.pof_position?.modality ||
+    item.pof_position?.subject_name ||
+    '-';
+  const cargoCodigo = item.cargo_codigo ? `[${item.cargo_codigo}] ` : '';
+
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <header className="mb-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-200 pb-2 dark:border-slate-700">
+        <h5 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+          {sinPlaza
+            ? `Designación · ${item.resolution_number ?? 'S/P'}`
+            : `Plaza ${item.pof_position?.plaza_number} · ${cargoCodigo}${cargoTexto}`}
+        </h5>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+          {item.character_type || '-'}
+        </span>
+      </header>
+
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-3">
+        {item.pof_position?.subject_name ? (
+          <Field label="Asignatura" value={item.pof_position.subject_name} />
+        ) : null}
+        <Field label="Escalafón" value={item.escalafon} />
+        <Field label="Categoría" value={item.categoria} />
+        {item.puesto_laboral !== null && item.puesto_laboral !== undefined ? (
+          <Field label="Puesto laboral" value={String(item.puesto_laboral)} />
+        ) : null}
+        <Field
+          label="Sub-Organización"
+          value={subOrgLabel(item.pof_position?.sub_organizacion)}
+        />
+        <Field
+          label="Tipo de plaza"
+          value={item.pof_position?.tipo_plaza_estado}
+        />
+        <Field label="Curso" value={item.pof_position?.course} />
+        <Field label="División" value={item.pof_position?.division} />
+        <Field label="Turno" value={shiftLabel(item.pof_position?.shift)} />
+        <Field
+          label="Horas"
+          value={
+            item.pof_position?.hours_count !== null &&
+            item.pof_position?.hours_count !== undefined
+              ? String(item.pof_position.hours_count)
+              : null
+          }
+        />
+        <Field label="Toma de posesión" value={formatDate(item.start_date)} />
+        <Field
+          label="Hasta"
+          value={
+            item.end_date ? formatDate(item.end_date) : 'CONTINÚA'
+          }
+        />
+        <Field label="Norma legal" value={item.legal_norm} />
+        <Field
+          label="Motivo de ingreso"
+          value={item.motivo_ingreso}
+          colSpan={2}
+        />
+        {item.motivo_egreso ? (
+          <Field
+            label="Motivo de egreso"
+            value={item.motivo_egreso}
+            colSpan={2}
+          />
+        ) : null}
+        {item.pof_position?.establecimiento_cue &&
+        item.pof_position.establecimiento_cue !== '1800697-00' ? (
+          <Field
+            label="CUE"
+            value={item.pof_position.establecimiento_cue}
+            colSpan={2}
+          />
+        ) : null}
+        {item.notes ? (
+          <Field label="Observaciones" value={item.notes} colSpan={3} />
+        ) : null}
+      </dl>
+    </article>
+  );
+}
+
+function Field({
+  label,
+  value,
+  colSpan = 1,
+}: {
+  label: string;
+  value?: string | null;
+  colSpan?: 1 | 2 | 3;
+}) {
+  const spanClass =
+    colSpan === 3
+      ? 'sm:col-span-3'
+      : colSpan === 2
+        ? 'sm:col-span-2'
+        : '';
+  return (
+    <div className={spanClass}>
+      <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        {label}
+      </dt>
+      <dd className="text-xs text-slate-800 dark:text-slate-100">
+        {value || '-'}
+      </dd>
+    </div>
+  );
+}
+
 function RevistaTable({ items, emptyText }: { items: RevistaItem[]; emptyText: string }) {
   if (!items.length) {
     return (
@@ -221,6 +351,20 @@ export function RevistaPanel({ agent, canManage, onRefreshProfile }: Props) {
               : 'No hay revista histórica cargada.'
           }
         />
+
+        {/* Detalle estilo "Detalle Plaza" del MEC: una card por designación
+            actual con todos los campos espejados. Solo se muestra cuando la
+            vista es Actual; la histórica usa la tabla compacta. */}
+        {revistaView === 'actual' && revistaItems.length > 0 ? (
+          <div className="mt-5 space-y-3 print:hidden">
+            <h5 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              Detalle de cada prestación
+            </h5>
+            {revistaItems.map((item, index) => (
+              <RevistaDetalleCard key={item.id ?? index} item={item} />
+            ))}
+          </div>
+        ) : null}
       </section>
 
       {openAssignmentModal ? (

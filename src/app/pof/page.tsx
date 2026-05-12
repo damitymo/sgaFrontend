@@ -34,6 +34,14 @@ type PofItem = {
   vacancy_status?: string | null;
   legal_norm?: string | null;
   notes?: string | null;
+  // Campos espejo del MEC
+  establecimiento_cue?: string | null;
+  sub_organizacion?: string | null;
+  tipo_plaza_estado?: string | null;
+  fecha_creacion?: string | null;
+  fecha_vacante?: string | null;
+  motivo_vacante?: string | null;
+  fecha_ultimo_movimiento?: string | null;
   current_holder?: Holder | null;
   covered_titular?: Holder | null;
   previous_holder?: Holder | null;
@@ -1183,6 +1191,32 @@ function FragmentRow({
               <p>
                 <span className="font-semibold">Norma legal:</span> {item.legal_norm || '-'}
               </p>
+              <p>
+                <span className="font-semibold">Sub-Organización:</span>{' '}
+                {item.sub_organizacion || '-'}
+              </p>
+              <p>
+                <span className="font-semibold">Tipo plaza:</span>{' '}
+                {item.tipo_plaza_estado || '-'}
+              </p>
+              <p>
+                <span className="font-semibold">CUE:</span>{' '}
+                {item.establecimiento_cue || '-'}
+              </p>
+              <p>
+                <span className="font-semibold">Fecha creación plaza:</span>{' '}
+                {formatDate(item.fecha_creacion)}
+              </p>
+              <p>
+                <span className="font-semibold">Fecha vacante:</span>{' '}
+                {formatDate(item.fecha_vacante)}
+              </p>
+              {item.motivo_vacante ? (
+                <p className="md:col-span-2 xl:col-span-3">
+                  <span className="font-semibold">Motivo vacante:</span>{' '}
+                  {item.motivo_vacante}
+                </p>
+              ) : null}
               <p className="md:col-span-2 xl:col-span-3">
                 <span className="font-semibold">Observaciones:</span> {item.notes || '-'}
               </p>
