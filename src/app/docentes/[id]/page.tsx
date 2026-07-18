@@ -9,8 +9,11 @@ import { type AgentProfile } from '@/components/docente-datos-panel';
 import { useEscapeKey } from '@/lib/use-escape-key';
 import { LegajoPanel } from '@/components/legajo-panel';
 import { RevistaPanel } from '@/components/revista-panel';
+import { LicenciasPanel } from '@/components/licencias-panel';
 import { AttendanceGrid } from '@/components/attendance-grid';
 import { ClassScheduleEditor } from '@/components/class-schedule-editor';
+import { FichaStatsRow } from '@/components/ficha-stats-row';
+import { FichaTabs } from '@/components/ficha-tabs';
 
 type AuthUser = {
   id: number;
@@ -144,6 +147,12 @@ export default function DocenteDetallePage() {
   const [formErrors, setFormErrors] = useState<AgentFormErrors>({});
   const [form, setForm] = useState<AgentForm>(emptyForm);
 
+  const [stats, setStats] = useState({
+    faltasInjustificadas: 0,
+    faltasJustificadas: 0,
+    diasLicencia: 0,
+  });
+
   useEffect(() => {
     const loadAuthUser = async () => {
       try {
@@ -190,11 +199,41 @@ export default function DocenteDetallePage() {
     }
   }, [docenteId]);
 
+  const loadStats = useCallback(async () => {
+    if (Number.isNaN(docenteId)) return;
+
+    const currentYear = new Date().getFullYear();
+
+    try {
+      const [attendanceRes, licensesRes] = await Promise.all([
+        api.get(`/attendance/agent/${docenteId}/stats`, {
+          params: { year: currentYear },
+        }),
+        api.get(`/licenses/agent/${docenteId}`),
+      ]);
+
+      const diasLicencia = (
+        licensesRes.data as Array<{ start_date: string; days_count: number }>
+      )
+        .filter((l) => new Date(l.start_date).getFullYear() === currentYear)
+        .reduce((sum, l) => sum + l.days_count, 0);
+
+      setStats({
+        faltasInjustificadas: attendanceRes.data?.counts?.AUSENTE_INJUSTIFICADO ?? 0,
+        faltasJustificadas: attendanceRes.data?.counts?.LICENCIA ?? 0,
+        diasLicencia,
+      });
+    } catch (error) {
+      console.error('No se pudieron cargar las estadísticas de la ficha:', error);
+    }
+  }, [docenteId]);
+
   useEffect(() => {
     if (!Number.isNaN(docenteId)) {
       void loadFullProfile();
+      void loadStats();
     }
-  }, [docenteId, loadFullProfile]);
+  }, [docenteId, loadFullProfile, loadStats]);
 
   const updateForm = (field: keyof AgentForm, value: string) => {
     setForm((prev) => {
@@ -406,40 +445,83 @@ export default function DocenteDetallePage() {
             <>
               <LegajoPanel agent={agent} />
 
-              <RevistaPanel
-                agent={agent}
-                canManage={canManageAgents}
-                onRefreshProfile={loadFullProfile}
+              <FichaStatsRow
+                cargosActivos={
+                  (agent.assignments ?? []).filter(
+                    (a) => a.id && (a.status === 'ACTIVA' || a.is_active),
+                  ).length
+                }
+                faltasInjustificadas={stats.faltasInjustificadas}
+                faltasJustificadas={stats.faltasJustificadas}
+                diasLicencia={stats.diasLicencia}
+                year={new Date().getFullYear()}
               />
 
-              {(agent.assignments ?? [])
-                .filter((a) => a.id && (a.status === 'ACTIVA' || a.is_active))
-                .map((a) => (
-                  <ClassScheduleEditor
-                    key={a.id}
-                    assignmentId={a.id as number}
-                    year={new Date().getFullYear()}
-                    title={
-                      a.pof_position?.subject_name
-                        ? `${a.pof_position.subject_name}${
-                            a.pof_position.course
-                              ? ` · ${a.pof_position.course}${
-                                  a.pof_position.division
-                                    ? ' ' + a.pof_position.division
-                                    : ''
-                                }`
-                              : ''
-                          }`
-                        : 'Horario de clase'
-                    }
-                    shiftLabel={a.pof_position?.shift ?? undefined}
-                    readOnly={!canManageAgents}
-                  />
-                ))}
+              <FichaTabs
+                tabs={[
+                  {
+                    key: 'cargos',
+                    label: 'Cargos',
+                    badge: (agent.assignments ?? []).filter(
+                      (a) => a.id && (a.status === 'ACTIVA' || a.is_active),
+                    ).length,
+                    content: (
+                      <div className="space-y-6">
+                        <RevistaPanel
+                          agent={agent}
+                          canManage={canManageAgents}
+                          onRefreshProfile={loadFullProfile}
+                        />
 
-              <AttendanceGrid
-                source={{ kind: 'agent', agentId: agent.id }}
-                canManage={canManageAgents}
+                        {(agent.assignments ?? [])
+                          .filter((a) => a.id && (a.status === 'ACTIVA' || a.is_active))
+                          .map((a) => (
+                            <ClassScheduleEditor
+                              key={a.id}
+                              assignmentId={a.id as number}
+                              year={new Date().getFullYear()}
+                              title={
+                                a.pof_position?.subject_name
+                                  ? `${a.pof_position.subject_name}${
+                                      a.pof_position.course
+                                        ? ` · ${a.pof_position.course}${
+                                            a.pof_position.division
+                                              ? ' ' + a.pof_position.division
+                                              : ''
+                                          }`
+                                        : ''
+                                    }`
+                                  : 'Horario de clase'
+                              }
+                              shiftLabel={a.pof_position?.shift ?? undefined}
+                              readOnly={!canManageAgents}
+                            />
+                          ))}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'inasistencias',
+                    label: 'Inasistencias',
+                    content: (
+                      <AttendanceGrid
+                        source={{ kind: 'agent', agentId: agent.id }}
+                        canManage={canManageAgents}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'licencias',
+                    label: 'Licencias',
+                    content: (
+                      <LicenciasPanel
+                        agentId={agent.id}
+                        agentName={agent.full_name}
+                        canManage={canManageAgents}
+                      />
+                    ),
+                  },
+                ]}
               />
             </>
           ) : null}

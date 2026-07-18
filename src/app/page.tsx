@@ -25,7 +25,50 @@ type AttendanceItem = {
   condition_type?: string | null;
   shift?: string | null;
   source_sheet_name?: string | null;
+  source_agent_name?: string | null;
   observation?: string | null;
+  agent?: { id: number; full_name: string } | null;
+};
+
+type AssignmentItem = {
+  id: number;
+  agent_id: number;
+  character_type: string | null;
+  status: string;
+};
+
+type LicenseItem = {
+  id: number;
+  agent_id: number;
+  agent?: { id: number; full_name: string } | null;
+  license_type_id: number;
+  license_type?: {
+    id: number;
+    article: string;
+    max_days_per_year?: number | null;
+  } | null;
+  days_count: number;
+};
+
+type PlantelStats = {
+  plantel_activo: number;
+  titulares: number;
+  interinos: number;
+  suplentes: number;
+};
+
+type MonthlyLimitRow = {
+  agent_id: number;
+  full_name: string;
+  count: number;
+};
+
+type LicenseLimitRow = {
+  agent_id: number;
+  full_name: string;
+  article: string;
+  used: number;
+  max: number;
 };
 
 type BirthdayItem = {
@@ -106,12 +149,86 @@ function buildInstitutionalStats(attendance: AttendanceItem[]): AttendanceStats 
   };
 }
 
+function buildPlantelStats(assignments: AssignmentItem[]): PlantelStats {
+  const activos = assignments.filter((a) => a.status === 'ACTIVA');
+  const plantelActivo = new Set<number>();
+  const titulares = new Set<number>();
+  const interinos = new Set<number>();
+  const suplentes = new Set<number>();
+
+  for (const a of activos) {
+    plantelActivo.add(a.agent_id);
+    const c = (a.character_type || '').toUpperCase();
+    if (c === 'TITULAR') titulares.add(a.agent_id);
+    else if (c === 'INTERINO') interinos.add(a.agent_id);
+    else if (c === 'SUPLENTE') suplentes.add(a.agent_id);
+  }
+
+  return {
+    plantel_activo: plantelActivo.size,
+    titulares: titulares.size,
+    interinos: interinos.size,
+    suplentes: suplentes.size,
+  };
+}
+
+/** "Límite Mensual": docentes con faltas injustificadas en el mes actual. */
+function buildMonthlyLimit(records: AttendanceItem[]): MonthlyLimitRow[] {
+  const map = new Map<number, MonthlyLimitRow>();
+
+  for (const r of records) {
+    const fullName =
+      r.agent?.full_name || r.source_agent_name || `Agente #${r.agent_id}`;
+    const entry = map.get(r.agent_id) ?? {
+      agent_id: r.agent_id,
+      full_name: fullName,
+      count: 0,
+    };
+    entry.count += 1;
+    map.set(r.agent_id, entry);
+  }
+
+  return Array.from(map.values()).sort((a, b) => b.count - a.count);
+}
+
+/**
+ * "Licencias al límite": para cada docente + tipo de licencia con tope
+ * anual configurado, suma los días usados en el año y se queda con los
+ * que están al 80% o más del tope (cercano o superado).
+ */
+function buildLicenseLimits(licenses: LicenseItem[]): LicenseLimitRow[] {
+  const map = new Map<string, LicenseLimitRow>();
+
+  for (const l of licenses) {
+    const max = l.license_type?.max_days_per_year;
+    if (!max) continue;
+
+    const key = `${l.agent_id}-${l.license_type_id}`;
+    const entry = map.get(key) ?? {
+      agent_id: l.agent_id,
+      full_name: l.agent?.full_name || `Agente #${l.agent_id}`,
+      article: l.license_type?.article || '-',
+      used: 0,
+      max,
+    };
+    entry.used += l.days_count;
+    map.set(key, entry);
+  }
+
+  return Array.from(map.values())
+    .filter((row) => row.used >= row.max * 0.8)
+    .sort((a, b) => b.used / b.max - a.used / a.max);
+}
+
 export default function HomePage() {
   const [user, setUser] = useState<LoggedUser | null>(null);
   const [agents, setAgents] = useState<AgentItem[]>([]);
   const [attendance, setAttendance] = useState<AttendanceItem[]>([]);
   const [agentStats, setAgentStats] = useState<AttendanceStats | null>(null);
   const [birthdaysThisMonth, setBirthdaysThisMonth] = useState<BirthdayItem[]>([]);
+  const [plantelStats, setPlantelStats] = useState<PlantelStats | null>(null);
+  const [monthlyLimit, setMonthlyLimit] = useState<MonthlyLimitRow[]>([]);
+  const [licenseLimits, setLicenseLimits] = useState<LicenseLimitRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
@@ -141,12 +258,31 @@ export default function HomePage() {
           return;
         }
 
-        const [agentsResponse, attendanceResponse, birthdaysResponse] =
-          await Promise.all([
-            api.get<AgentItem[]>('/agents'),
-            api.get<AttendanceItem[]>('/attendance'),
-            api.get<BirthdayItem[]>('/agents/birthdays/month'),
-          ]);
+        const now = new Date();
+
+        const [
+          agentsResponse,
+          attendanceResponse,
+          birthdaysResponse,
+          assignmentsResponse,
+          monthlyFaltasResponse,
+          licensesResponse,
+        ] = await Promise.all([
+          api.get<AgentItem[]>('/agents'),
+          api.get<AttendanceItem[]>('/attendance'),
+          api.get<BirthdayItem[]>('/agents/birthdays/month'),
+          api.get<AssignmentItem[]>('/assignments'),
+          api.get<AttendanceItem[]>('/attendance', {
+            params: {
+              year: now.getFullYear(),
+              month: now.getMonth() + 1,
+              status: 'AUSENTE_INJUSTIFICADO',
+            },
+          }),
+          api.get<LicenseItem[]>('/licenses', {
+            params: { year: now.getFullYear() },
+          }),
+        ]);
 
         setAgents((agentsResponse.data ?? []) as AgentItem[]);
         setAttendance((attendanceResponse.data ?? []) as AttendanceItem[]);
@@ -154,6 +290,9 @@ export default function HomePage() {
           (birthdaysResponse.data ?? []).sort((a, b) => a.day - b.day),
         );
         setAgentStats(null);
+        setPlantelStats(buildPlantelStats(assignmentsResponse.data ?? []));
+        setMonthlyLimit(buildMonthlyLimit(monthlyFaltasResponse.data ?? []));
+        setLicenseLimits(buildLicenseLimits(licensesResponse.data ?? []));
       } catch (error) {
         console.error(error);
         setMessage('No se pudieron cargar los datos del panel principal.');
@@ -219,7 +358,7 @@ export default function HomePage() {
               {!isAgentUser ? (
                 <>
                   {/* Accesos directos compactos */}
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <ModuleTile
                       href="/docentes"
                       title="Docentes"
@@ -235,6 +374,19 @@ export default function HomePage() {
                       title="Asistencia"
                       subtitle="Novedades diarias"
                     />
+                    <ModuleTile
+                      href="/licencias"
+                      title="Licencias"
+                      subtitle="Artículos y períodos"
+                    />
+                  </div>
+
+                  {/* Panel de Control Integral: plantel + límites */}
+                  <PlantelKpis stats={plantelStats} />
+
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <LimiteMensualPanel rows={monthlyLimit} />
+                    <LicenciasLimitePanel rows={licenseLimits} />
                   </div>
 
                   {/* Stats + cumpleaños en dos columnas compactas */}
@@ -333,6 +485,114 @@ function ModuleTile({
         {subtitle}
       </p>
     </Link>
+  );
+}
+
+function PlantelKpis({ stats }: { stats: PlantelStats | null }) {
+  const safe = stats ?? {
+    plantel_activo: 0,
+    titulares: 0,
+    interinos: 0,
+    suplentes: 0,
+  };
+
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <MetricPill label="Plantel activo" value={safe.plantel_activo} tone="neutral" />
+      <MetricPill label="Titulares" value={safe.titulares} tone="emerald" />
+      <MetricPill label="Interinos" value={safe.interinos} tone="amber" />
+      <MetricPill label="Suplentes" value={safe.suplentes} tone="neutral" />
+    </div>
+  );
+}
+
+function LimiteMensualPanel({ rows }: { rows: MonthlyLimitRow[] }) {
+  const monthName = getMonthName(new Date().getMonth() + 1);
+
+  return (
+    <div className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="mb-3 flex items-baseline justify-between">
+        <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+          Límite mensual · {monthName}
+        </h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          {rows.length} docente(s)
+        </p>
+      </div>
+
+      {rows.length > 0 ? (
+        <ul className="-mr-1 max-h-72 space-y-1.5 overflow-y-auto pr-1">
+          {rows.map((row) => (
+            <li
+              key={row.agent_id}
+              className="flex items-center justify-between gap-3 border-b border-slate-100 py-1.5 last:border-b-0 dark:border-slate-800"
+            >
+              <span className="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-slate-200">
+                {row.full_name}
+              </span>
+              <span className="shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950 dark:text-rose-200">
+                {row.count} falta{row.count === 1 ? '' : 's'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Sin faltas injustificadas este mes.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function LicenciasLimitePanel({ rows }: { rows: LicenseLimitRow[] }) {
+  return (
+    <div className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="mb-3 flex items-baseline justify-between">
+        <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+          Licencias al límite
+        </h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          {rows.length} caso(s)
+        </p>
+      </div>
+
+      {rows.length > 0 ? (
+        <ul className="-mr-1 max-h-72 space-y-1.5 overflow-y-auto pr-1">
+          {rows.map((row) => {
+            const superado = row.used >= row.max;
+            return (
+              <li
+                key={`${row.agent_id}-${row.article}`}
+                className="flex items-center justify-between gap-3 border-b border-slate-100 py-1.5 last:border-b-0 dark:border-slate-800"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-slate-700 dark:text-slate-200">
+                    {row.full_name}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {row.article}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                    superado
+                      ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-200'
+                      : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200'
+                  }`}
+                >
+                  Usó {row.used} de {row.max} días
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Ningún docente está cerca del tope anual de licencias.
+        </p>
+      )}
+    </div>
   );
 }
 
