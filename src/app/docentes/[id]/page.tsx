@@ -11,7 +11,8 @@ import { LegajoPanel } from '@/components/legajo-panel';
 import { RevistaPanel } from '@/components/revista-panel';
 import { LicenciasPanel } from '@/components/licencias-panel';
 import { AttendanceGrid } from '@/components/attendance-grid';
-import { ClassScheduleEditor } from '@/components/class-schedule-editor';
+import { AttendanceListPanel } from '@/components/attendance-list-panel';
+import { ClassSchedulePanel } from '@/components/class-schedule-panel';
 import { FichaStatsRow } from '@/components/ficha-stats-row';
 import { FichaTabs } from '@/components/ficha-tabs';
 
@@ -473,30 +474,27 @@ export default function DocenteDetallePage() {
                           onRefreshProfile={loadFullProfile}
                         />
 
-                        {(agent.assignments ?? [])
-                          .filter((a) => a.id && (a.status === 'ACTIVA' || a.is_active))
-                          .map((a) => (
-                            <ClassScheduleEditor
-                              key={a.id}
-                              assignmentId={a.id as number}
-                              year={new Date().getFullYear()}
-                              title={
-                                a.pof_position?.subject_name
-                                  ? `${a.pof_position.subject_name}${
-                                      a.pof_position.course
-                                        ? ` · ${a.pof_position.course}${
-                                            a.pof_position.division
-                                              ? ' ' + a.pof_position.division
-                                              : ''
-                                          }`
-                                        : ''
-                                    }`
-                                  : 'Horario de clase'
-                              }
-                              shiftLabel={a.pof_position?.shift ?? undefined}
-                              readOnly={!canManageAgents}
-                            />
-                          ))}
+                        <ClassSchedulePanel
+                          year={new Date().getFullYear()}
+                          readOnly={!canManageAgents}
+                          cargos={(agent.assignments ?? [])
+                            .filter((a) => a.id && (a.status === 'ACTIVA' || a.is_active))
+                            .map((a) => ({
+                              assignmentId: a.id as number,
+                              label: a.pof_position?.subject_name
+                                ? `${a.pof_position.subject_name}${
+                                    a.pof_position.course
+                                      ? ` · ${a.pof_position.course}${
+                                          a.pof_position.division
+                                            ? ' ' + a.pof_position.division
+                                            : ''
+                                        }`
+                                      : ''
+                                  }`
+                                : 'Horario de clase',
+                              shiftLabel: a.pof_position?.shift ?? undefined,
+                            }))}
+                        />
                       </div>
                     ),
                   },
@@ -504,10 +502,16 @@ export default function DocenteDetallePage() {
                     key: 'inasistencias',
                     label: 'Inasistencias',
                     content: (
-                      <AttendanceGrid
-                        source={{ kind: 'agent', agentId: agent.id }}
-                        canManage={canManageAgents}
-                      />
+                      <div className="space-y-6">
+                        <AttendanceListPanel
+                          source={{ kind: 'agent', agentId: agent.id }}
+                          canManage={canManageAgents}
+                        />
+                        <AttendanceGrid
+                          source={{ kind: 'agent', agentId: agent.id }}
+                          canManage={canManageAgents}
+                        />
+                      </div>
                     ),
                   },
                   {
