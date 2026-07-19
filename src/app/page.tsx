@@ -63,6 +63,14 @@ type MonthlyLimitRow = {
   count: number;
 };
 
+/** Art. 31 del Régimen de licencias: 12 inasistencias injustificadas en el
+ * año lectivo habilitan la cesantía (previo sumario). */
+type CesantiaRiskRow = {
+  agent_id: number;
+  full_name: string;
+  count: number;
+};
+
 type LicenseLimitRow = {
   agent_id: number;
   full_name: string;
@@ -192,6 +200,31 @@ function buildMonthlyLimit(records: AttendanceItem[]): MonthlyLimitRow[] {
 }
 
 /**
+ * Art. 31 del Régimen de licencias: 12 inasistencias injustificadas en el
+ * año lectivo habilitan la cesantía (previo sumario). Se muestran los
+ * docentes que ya están en 8+ (acercándose o en la situación habilitante).
+ */
+function buildCesantiaRisk(records: AttendanceItem[]): CesantiaRiskRow[] {
+  const map = new Map<number, CesantiaRiskRow>();
+
+  for (const r of records) {
+    const fullName =
+      r.agent?.full_name || r.source_agent_name || `Agente #${r.agent_id}`;
+    const entry = map.get(r.agent_id) ?? {
+      agent_id: r.agent_id,
+      full_name: fullName,
+      count: 0,
+    };
+    entry.count += 1;
+    map.set(r.agent_id, entry);
+  }
+
+  return Array.from(map.values())
+    .filter((row) => row.count >= 8)
+    .sort((a, b) => b.count - a.count);
+}
+
+/**
  * "Licencias al límite": para cada docente + tipo de licencia con tope
  * anual configurado, suma los días usados en el año y se queda con los
  * que están al 80% o más del tope (cercano o superado).
@@ -229,6 +262,7 @@ export default function HomePage() {
   const [plantelStats, setPlantelStats] = useState<PlantelStats | null>(null);
   const [monthlyLimit, setMonthlyLimit] = useState<MonthlyLimitRow[]>([]);
   const [licenseLimits, setLicenseLimits] = useState<LicenseLimitRow[]>([]);
+  const [cesantiaRisk, setCesantiaRisk] = useState<CesantiaRiskRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
@@ -267,6 +301,7 @@ export default function HomePage() {
           assignmentsResponse,
           monthlyFaltasResponse,
           licensesResponse,
+          yearlyFaltasResponse,
         ] = await Promise.all([
           api.get<AgentItem[]>('/agents'),
           api.get<AttendanceItem[]>('/attendance'),
@@ -282,6 +317,12 @@ export default function HomePage() {
           api.get<LicenseItem[]>('/licenses', {
             params: { year: now.getFullYear() },
           }),
+          api.get<AttendanceItem[]>('/attendance', {
+            params: {
+              year: now.getFullYear(),
+              status: 'AUSENTE_INJUSTIFICADO',
+            },
+          }),
         ]);
 
         setAgents((agentsResponse.data ?? []) as AgentItem[]);
@@ -293,6 +334,7 @@ export default function HomePage() {
         setPlantelStats(buildPlantelStats(assignmentsResponse.data ?? []));
         setMonthlyLimit(buildMonthlyLimit(monthlyFaltasResponse.data ?? []));
         setLicenseLimits(buildLicenseLimits(licensesResponse.data ?? []));
+        setCesantiaRisk(buildCesantiaRisk(yearlyFaltasResponse.data ?? []));
       } catch (error) {
         console.error(error);
         setMessage('No se pudieron cargar los datos del panel principal.');
@@ -388,6 +430,8 @@ export default function HomePage() {
                     <LimiteMensualPanel rows={monthlyLimit} />
                     <LicenciasLimitePanel rows={licenseLimits} />
                   </div>
+
+                  <CesantiaRiskPanel rows={cesantiaRisk} />
 
                   {/* Stats + cumpleaños en dos columnas compactas */}
                   <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
@@ -590,6 +634,57 @@ function LicenciasLimitePanel({ rows }: { rows: LicenseLimitRow[] }) {
       ) : (
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Ningún docente está cerca del tope anual de licencias.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CesantiaRiskPanel({ rows }: { rows: CesantiaRiskRow[] }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="mb-3 flex items-baseline justify-between">
+        <div>
+          <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+            Riesgo de cesantía (Art. 31)
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            12 inasistencias injustificadas en el año habilitan la cesantía
+          </p>
+        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          {rows.length} caso(s)
+        </p>
+      </div>
+
+      {rows.length > 0 ? (
+        <ul className="-mr-1 max-h-72 space-y-1.5 overflow-y-auto pr-1">
+          {rows.map((row) => {
+            const habilitada = row.count >= 12;
+            return (
+              <li
+                key={row.agent_id}
+                className="flex items-center justify-between gap-3 border-b border-slate-100 py-1.5 last:border-b-0 dark:border-slate-800"
+              >
+                <span className="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-slate-200">
+                  {row.full_name}
+                </span>
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                    habilitada
+                      ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-200'
+                      : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200'
+                  }`}
+                >
+                  {row.count} falta(s) · {habilitada ? 'Cesantía habilitada' : 'Acercándose'}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Ningún docente está cerca del límite del Art. 31.
         </p>
       )}
     </div>

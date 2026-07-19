@@ -8,6 +8,15 @@ export type LicenseTypeOption = {
   id: number;
   article: string;
   description: string;
+  max_days_per_year?: number | null;
+  max_days_continuous?: number | null;
+};
+
+type ExistingLicense = {
+  id: number;
+  license_type_id: number;
+  start_date: string;
+  days_count: number;
 };
 
 export type LicenseEditTarget = {
@@ -110,6 +119,7 @@ export function LicenseModal({
 
   const [licenseTypes, setLicenseTypes] = useState<LicenseTypeOption[]>([]);
   const [loadingTypes, setLoadingTypes] = useState(true);
+  const [existingLicenses, setExistingLicenses] = useState<ExistingLicense[]>([]);
   const [form, setForm] = useState<FormState>(buildInitialForm(license));
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
@@ -134,10 +144,58 @@ export function LicenseModal({
     void loadTypes();
   }, []);
 
+  useEffect(() => {
+    const loadExisting = async () => {
+      try {
+        const response = await api.get<ExistingLicense[]>(
+          `/licenses/agent/${agentId}`,
+        );
+        setExistingLicenses(response.data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    void loadExisting();
+  }, [agentId]);
+
   const daysCount = useMemo(
     () => computeDaysCount(form.start_date, form.end_date),
     [form.start_date, form.end_date],
   );
+
+  const limitWarning = useMemo(() => {
+    if (!form.license_type_id || !form.start_date || daysCount === null) {
+      return null;
+    }
+
+    const type = licenseTypes.find((t) => t.id === Number(form.license_type_id));
+    if (!type) return null;
+
+    if (type.max_days_continuous && daysCount > type.max_days_continuous) {
+      return `Esta licencia son ${daysCount} día(s) corridos y el tope continuo de ${type.article} es de ${type.max_days_continuous} día(s).`;
+    }
+
+    if (type.max_days_per_year) {
+      const year = new Date(form.start_date).getFullYear();
+      const usedByOthers = existingLicenses
+        .filter(
+          (l) =>
+            l.license_type_id === type.id &&
+            l.id !== license?.id &&
+            new Date(l.start_date).getFullYear() === year,
+        )
+        .reduce((sum, l) => sum + l.days_count, 0);
+
+      const total = usedByOthers + daysCount;
+
+      if (total > type.max_days_per_year) {
+        return `Con esta licencia el/la docente usaría ${total} de ${type.max_days_per_year} día(s) anuales para ${type.article}.`;
+      }
+    }
+
+    return null;
+  }, [form.license_type_id, form.start_date, daysCount, licenseTypes, existingLicenses, license?.id]);
 
   const updateField = <K extends keyof FormState>(
     field: K,
@@ -288,6 +346,12 @@ export function LicenseModal({
             />
           </FormField>
         </div>
+
+        {limitWarning ? (
+          <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+            ⚠ Atención: {limitWarning}
+          </div>
+        ) : null}
 
         <div className="mt-6 flex flex-wrap gap-3">
           <button

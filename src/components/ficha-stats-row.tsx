@@ -12,10 +12,12 @@ function StatCard({
   label,
   value,
   tone,
+  footnote,
 }: {
   label: string;
   value: number;
   tone: 'neutral' | 'rose' | 'emerald' | 'amber';
+  footnote?: string;
 }) {
   const toneClasses = {
     neutral:
@@ -33,8 +35,19 @@ function StatCard({
         {label}
       </p>
       <p className="mt-1 text-2xl font-bold">{value}</p>
+      {footnote ? (
+        <p className="mt-1 text-[11px] font-semibold">{footnote}</p>
+      ) : null}
     </div>
   );
+}
+
+/** Art. 31 del Régimen de licencias: 12 inasistencias injustificadas en el
+ * año habilitan la cesantía (previo sumario). */
+function cesantiaFootnote(faltasInjustificadas: number): string | undefined {
+  if (faltasInjustificadas >= 12) return '⚠ Cesantía habilitada (Art. 31)';
+  if (faltasInjustificadas >= 8) return '⚠ Riesgo Art. 31';
+  return undefined;
 }
 
 export function FichaStatsRow({
@@ -51,6 +64,7 @@ export function FichaStatsRow({
         label={`Faltas injustificadas ${year}`}
         value={faltasInjustificadas}
         tone="rose"
+        footnote={cesantiaFootnote(faltasInjustificadas)}
       />
       <StatCard
         label={`Faltas justificadas ${year}`}

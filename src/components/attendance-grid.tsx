@@ -14,6 +14,7 @@ import { useEscapeKey } from '@/lib/use-escape-key';
 
 type GridDay = {
   day: number;
+  id: number | null;
   raw_code: string | null;
   status: string | null;
   observation: string | null;
@@ -149,6 +150,7 @@ type EditTarget = {
   year: number;
   month: number;
   day: number;
+  recordId: number | null;
 };
 
 export function AttendanceGrid({ source, canManage }: Props) {
@@ -194,7 +196,7 @@ export function AttendanceGrid({ source, canManage }: Props) {
     return list;
   }, []);
 
-  const openCell = (month: number, day: number) => {
+  const openCell = (month: number, day: number, record?: GridDay) => {
     if (!canManage) return;
     if (source.kind !== 'agent') return;
 
@@ -209,12 +211,18 @@ export function AttendanceGrid({ source, canManage }: Props) {
       return;
     }
 
-    setEditCode('P');
+    const existingCode = record?.raw_code?.toUpperCase();
+    setEditCode(
+      existingCode && (EDITABLE_CODES as readonly string[]).includes(existingCode)
+        ? (existingCode as EditableCode)
+        : 'P',
+    );
     setEditTarget({
       agentId: source.agentId,
       year,
       month,
       day,
+      recordId: record?.id ?? null,
     });
   };
 
@@ -226,12 +234,19 @@ export function AttendanceGrid({ source, canManage }: Props) {
       setSaving(true);
       const date = `${editTarget.year}-${String(editTarget.month).padStart(2, '0')}-${String(editTarget.day).padStart(2, '0')}`;
 
-      await api.post('/attendance', {
-        agent_id: editTarget.agentId,
-        attendance_date: date,
-        status: CODE_TO_STATUS[editCode],
-        raw_code: editCode,
-      });
+      if (editTarget.recordId) {
+        await api.patch(`/attendance/${editTarget.recordId}`, {
+          status: CODE_TO_STATUS[editCode],
+          raw_code: editCode,
+        });
+      } else {
+        await api.post('/attendance', {
+          agent_id: editTarget.agentId,
+          attendance_date: date,
+          status: CODE_TO_STATUS[editCode],
+          raw_code: editCode,
+        });
+      }
 
       setEditTarget(null);
       await loadGrid();
@@ -385,7 +400,7 @@ export function AttendanceGrid({ source, canManage }: Props) {
                               title={titleParts.join(' · ')}
                               onClick={
                                 clickable
-                                  ? () => openCell(m.month, dayNumber)
+                                  ? () => openCell(m.month, dayNumber, record)
                                   : undefined
                               }
                               className={`border border-slate-200 px-1 py-1 font-mono text-[11px] dark:border-slate-700 ${cellClass(kind, code)} ${clickable ? 'cursor-pointer hover:ring-2 hover:ring-emerald-400' : ''}`}
